@@ -1,0 +1,167 @@
+version: "2.0"
+
+services:
+  story-generator:
+    # Using the pre-built Docker image that includes Flask, Gemini AI, and Gunicorn
+    image: python:3.11-slim
+    
+    # Build the application from source in the container
+    command: >
+      bash -c "
+      apt-get update && apt-get install -y curl &&
+      pip install flask==3.0.0 google-generativeai==0.3.2 gunicorn==21.2.0 &&
+      echo 'import os
+      import json
+      from datetime import datetime
+      from typing import Dict, Any
+      from flask import Flask, request, jsonify
+      import google.generativeai as genai
+
+      app = Flask(__name__)
+
+      GEMINI_API_KEY = AIzaSyB2VLzqQbnSy0KloCMlk4IRXD6L9Qwgc8Y
+
+      if GEMINI_API_KEY:
+          genai.configure(api_key=GEMINI_API_KEY)
+
+      @app.route(\"/\", methods=[\"GET\"])
+      def home():
+          return jsonify({
+              \"service\": \"Akash Story Generation Service\",
+              \"version\": \"1.0\",
+              \"status\": \"running\",
+              \"gemini_configured\": bool(GEMINI_API_KEY),
+              \"endpoints\": {
+                  \"story\": \"/generate-story\",
+                  \"script\": \"/generate-script\",
+                  \"health\": \"/health\"
+              },
+              \"timestamp\": datetime.now().isoformat()
+          })
+
+      @app.route(\"/health\", methods=[\"GET\"])
+      def health():
+          return jsonify({
+              \"status\": \"healthy\",
+              \"gemini_api\": \"configured\" if GEMINI_API_KEY else \"missing\",
+              \"timestamp\": datetime.now().isoformat()
+          })
+
+      @app.route(\"/generate-story\", methods=[\"POST\"])
+      def generate_story():
+          try:
+              data = request.get_json()
+              if not data:
+                  return jsonify({\"error\": \"No JSON data provided\"}), 400
+              
+              topic = data.get(\"topic\")
+              if not topic:
+                  return jsonify({\"error\": \"Topic is required\"}), 400
+              
+              genre = data.get(\"genre\", \"general\")
+              length = data.get(\"length\", \"short\")
+              style = data.get(\"style\", \"engaging\")
+              
+              story_result = generate_simple_story(topic, genre, length, style)
+              
+              return jsonify({
+                  \"success\": True,
+                  \"story\": story_result[\"story\"],
+                  \"title\": story_result[\"title\"],
+                  \"topic\": topic,
+                  \"genre\": genre,
+                  \"length\": length,
+                  \"style\": style,
+                  \"generated_by\": \"gemini\",
+                  \"timestamp\": datetime.now().isoformat()
+              })
+              
+          except Exception as e:
+              return jsonify({
+                  \"success\": False,
+                  \"error\": str(e),
+                  \"timestamp\": datetime.now().isoformat()
+              }), 500
+
+      def generate_simple_story(topic: str, genre: str, length: str, style: str) -> Dict[str, Any]:
+          if not GEMINI_API_KEY:
+              return {
+                  \"title\": f\"The Tale of {topic}\",
+                  \"story\": f\"This is a {style} {genre} story about {topic}. A fascinating tale that would be told here with all the details about {topic} and its wonderful characteristics.\",
+                  \"generated_by\": \"fallback\"
+              }
+          
+          length_specs = {
+              \"short\": \"300-500 words\",
+              \"medium\": \"500-800 words\", 
+              \"long\": \"800-1200 words\"
+          }
+          
+          word_count = length_specs.get(length, \"300-500 words\")
+          
+          prompt = f\"Create an {style} {genre} story about \'{topic}\'. Length: {word_count}. Format as JSON with title and story fields.\"
+          
+          try:
+              model = genai.GenerativeModel(\"gemini-pro\")
+              response = model.generate_content(prompt)
+              
+              response_text = response.text.strip()
+              if response_text.startswith(\"```json\"):
+                  response_text = response_text[7:]
+              if response_text.endswith(\"```\"):
+                  response_text = response_text[:-3]
+              
+              story_data = json.loads(response_text)
+              
+              return {
+                  \"title\": story_data.get(\"title\", f\"A Story About {topic}\"),
+                  \"story\": story_data.get(\"story\", \"Story generation completed.\"),
+                  \"generated_by\": \"gemini\"
+              }
+              
+          except:
+              return {
+                  \"title\": f\"The Tale of {topic}\",
+                  \"story\": f\"This is a {style} {genre} story about {topic}. Once upon a time, there was something magical about {topic} that captured everyones imagination. Through various adventures and discoveries, the story reveals the true essence of {topic} and its impact on the world.\",
+                  \"generated_by\": \"fallback\"
+              }
+
+      if __name__ == \"__main__\":
+          app.run(host=\"0.0.0.0\", port=80, debug=False)
+      ' > app.py &&
+      gunicorn --bind 0.0.0.0:80 --workers 2 --timeout 60 app:app
+      "
+    
+    expose:
+      - port: 80
+        as: 80
+        to:
+          - global: true
+    
+    env:
+      # Set your Gemini API key here before deployment
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+
+profiles:
+  compute:
+    story-cpu:
+      resources:
+        cpu:
+          units: 1          # 1 CPU core for story generation
+        memory:
+          size: 2Gi        # 2GB RAM - for Python, Flask, and Gemini API
+        storage:
+          - size: 2Gi      # 2GB storage for dependencies
+
+  placement:
+    any-provider:
+      pricing:
+        story-cpu:
+          denom: uakt
+          amount: 100      # Reasonable cost for story generation service
+
+deployment:
+  story-generator:
+    any-provider:
+      profile: story-cpu
+      count: 1

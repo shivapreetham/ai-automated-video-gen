@@ -1,13 +1,18 @@
 # AI Video Generator Requirements
 
+# Flask Server Dependencies
+flask==3.0.0
+
 # Core AI/ML Libraries
 openai>=1.0.0
 replicate
+google-generativeai==0.3.2
+elevenlabs==0.2.26
 
 # Image Processing
-Pillow>=9.0.0
-opencv-python
-numpy
+Pillow>=10.1.0
+opencv-python==4.8.1.78
+numpy==1.24.3
 scipy
 
 # Audio Processing
@@ -16,13 +21,9 @@ noisereduce
 azure-cognitiveservices-speech
 
 # Video Processing  
-moviepy
+moviepy==1.0.3
 ffmpeg-python
-
-# Web Framework (for voice clone APIs)
-fastapi
-uvicorn
-python-multipart
+imageio-ffmpeg==0.4.9
 
 # Natural Language Processing
 nltk
@@ -33,14 +34,11 @@ regex
 pysrt
 pysubs2
 
-# AWS SDK
-boto3
-
 # HTTP Requests
-requests
+requests==2.31.0
 
 # Utility Libraries
-tqdm
+tqdm==4.66.1
 uuid
 
 # YouTube Upload (install manually if needed: pip install git+https://github.com/tokland/youtube-upload.git)
@@ -49,4 +47,3 @@ uuid
 # Additional dependencies that might be needed
 matplotlib
 imageio
-imageio-ffmpeg

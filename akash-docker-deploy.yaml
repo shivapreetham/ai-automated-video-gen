@@ -1,0 +1,40 @@
+version: "2.0"
+
+services:
+  story-generator:
+    # Using our pre-built Docker image from Docker Hub
+    image: shiveren/akash-story-service:latest
+    
+    expose:
+      - port: 80
+        as: 80
+        to:
+          - global: true
+    
+    env:
+      # Set your Gemini API key here
+      - GEMINI_API_KEY=AIzaSyB2VLzqQbnSy0KloCMlk4IRXD6L9Qwgc8Y
+
+profiles:
+  compute:
+    story-service:
+      resources:
+        cpu:
+          units: 1          # 1 CPU core
+        memory:
+          size: 1Gi        # 1GB RAM
+        storage:
+          - size: 1Gi      # 1GB storage
+
+  placement:
+    any-provider:
+      pricing:
+        story-service:
+          denom: uakt
+          amount: 100      # Cost for story generation service
+
+deployment:
+  story-generator:
+    any-provider:
+      profile: story-service
+      count: 1
