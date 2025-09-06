@@ -33,8 +33,25 @@ try:
     # Import moviepy components directly  
     from moviepy.video.io.VideoFileClip import VideoFileClip
     from moviepy.audio.io.AudioFileClip import AudioFileClip
-    from moviepy.video.VideoClip import ImageClip, ColorClip
+    from moviepy.video.VideoClip import ImageClip as BaseImageClip, ColorClip
     from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+    
+    # Create enhanced ImageClip class with set_duration method
+    class ImageClip(BaseImageClip):
+        def set_duration(self, duration):
+            """Set duration for the image clip"""
+            self.duration = duration
+            self.end = duration
+            return self
+            
+        def resize(self, newsize):
+            """Resize the image clip"""
+            try:
+                # Use the parent class resize method
+                return super().resize(newsize)
+            except AttributeError:
+                # If resize not available, skip resizing
+                return self
     
     # Try to import concatenate from multiple possible locations
     try:
@@ -43,11 +60,24 @@ try:
         try:
             from moviepy.video.compositing import concatenate_videoclips
         except ImportError:
-            # If can't find concatenate, create simple fallback
+            # If can't find concatenate, create proper fallback
             def concatenate_videoclips(clips):
                 if not clips:
                     raise ValueError("No clips to concatenate")
-                return clips[0]  # Simple fallback - just return first clip
+                if len(clips) == 1:
+                    return clips[0]
+                    
+                # Create a CompositeVideoClip with sequential timing
+                from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+                
+                # Set start times for each clip to concatenate them
+                current_time = 0
+                for clip in clips:
+                    clip.start = current_time
+                    current_time += clip.duration
+                
+                # Create composite with all clips
+                return CompositeVideoClip(clips, size=clips[0].size)
             
     print("MoviePy components imported successfully")
     
@@ -432,9 +462,10 @@ def concatenate_images_local(event):
         negative_prompt = params['negative_prompt']
         width = params['width']
         height = params['height']
-        transcript_json_url = params['transcript_json_url']
+        transcript_json_url = params.get('transcript_json_url', params.get('sentences_json_url'))
         image_duration = params['image_duration']
         video_duration = params['video_duration']
+        print(f"DEBUG: PromptImagesToVideo received video_duration={video_duration:.1f}s")
         model = params['model']
         crop_method = params['crop_method']
         fps = params['fps']
@@ -480,12 +511,10 @@ def concatenate_images_local(event):
             
             for i, item in enumerate(subtitles_json):
                 try:
-                    # Calculate duration more robustly
-                    if i < len(subtitles_json) - 1:
-                        duration = (subtitles_json[i+1]['start_time'] - item['start_time']) / float(azure_time_unit)
-                    else:
-                        # Use duration field or estimate
-                        duration = item.get('duration', 30000000) / float(azure_time_unit)
+                    # FORCE duration to use our audio duration divided equally
+                    # This overrides transcript timing to match actual audio
+                    duration = video_duration / len(subtitles_json)
+                    print(f"DEBUG: Segment {i+1}: forced duration={duration:.1f}s (using audio_duration={video_duration:.1f}s / {len(subtitles_json)} segments)")
                     
                     # Ensure reasonable duration bounds
                     duration = max(1.0, min(30.0, duration))
@@ -560,9 +589,11 @@ def concatenate_images_local(event):
                     img_prompts.append(varied_prompt)
             
             # Calculate frame distribution
+            print(f"Duration calculation: video_duration={video_duration:.2f}s, fps={fps}, images={number_of_images}")
             total_frames = int(video_duration * fps)
             base_frames = total_frames // number_of_images
             extra_frames = total_frames % number_of_images
+            print(f"Frame distribution: total_frames={total_frames}, base_frames={base_frames}, extra_frames={extra_frames}")
             
             frames_per_image = [base_frames] * number_of_images
             # Distribute extra frames to first images
@@ -656,6 +687,7 @@ def concatenate_images_local(event):
             try:
                 screensize = (width, height)
                 img_duration = frames_per_image[i] / fps
+                print(f"DEBUG: Clip {i+1}: frames={frames_per_image[i]}, fps={fps}, duration={img_duration:.1f}s")
                 
                 # Verify image before creating clip
                 with Image.open(img_path) as test_img:
@@ -714,7 +746,9 @@ def concatenate_images_local(event):
         print(f"\nVIDEO Assembling video...")
         
         # Concatenate video clips
+        print(f"DEBUG: Concatenating {len(video_clips)} clips with durations: {[clip.duration for clip in video_clips]}")
         video_clip = concatenate_videoclips(video_clips)
+        print(f"DEBUG: Concatenation result: {video_clip.duration:.1f}s")
         print(f"OK Base video assembled ({video_clip.duration:.1f}s)")
         
         # Simple, fast video rendering - no transitions
@@ -722,8 +756,6 @@ def concatenate_images_local(event):
         video_clip.write_videofile(
             video_path, 
             fps=max(8, min(fps, 16)),  # Limit FPS to 8-16 for speed
-            verbose=False, 
-            logger=None,
             temp_audiofile='temp-audio.m4a',
             remove_temp=True,
             # Optimize for speed
@@ -752,7 +784,7 @@ def concatenate_images_local(event):
                 print("Creating emergency fallback video...")
                 emergency_clip = video_clips[0]
                 emergency_path = f'emergency_{video_path}'
-                emergency_clip.write_videofile(emergency_path, fps=fps, verbose=False, logger=None)
+                emergency_clip.write_videofile(emergency_path, fps=fps)
                 
                 # Cleanup
                 for clip in video_clips:
