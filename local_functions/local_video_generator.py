@@ -10,7 +10,8 @@ from datetime import datetime
 from typing import Dict, Any
 
 # Import our enhanced local functions
-from textToSpeech_gtts import mindsflow_function as generate_speech
+from textToSpeech_elevenlabs import mindsflow_function as generate_speech
+from textGeneration_gemini import generate_video_script
 from PromptImagesToVideo_pollinations import mindsflow_function as generate_video
 
 # Additional imports for enhanced functionality
@@ -41,91 +42,102 @@ class LocalVideoGenerator:
         # Create output directory with error handling
         try:
             os.makedirs(self.session_dir, exist_ok=True)
-            print(f"✓ Session created: {self.session_dir}")
+            print(f"Session created: {self.session_dir}")
         except Exception as e:
             raise LocalVideoGeneratorError(f"Failed to create session directory: {e}")
     
     def generate_enhanced_script(self, topic: str, style: str = None, num_segments: int = 4) -> Dict[str, Any]:
         """
-        Enhanced script generation with better variety and structure
-        Creates dynamic sentence structure for video
+        AI-powered script generation using Gemini
+        Creates dynamic, contextual content for videos
         """
         try:
-            # Style-based sentence templates
-            templates = {
-                'informative': [
-                    f"Welcome to our comprehensive guide about {topic}.",
-                    f"Let's explore the fascinating world of {topic} and its key aspects.",
-                    f"Here are the most important things you should know about {topic}.",
-                    f"Understanding {topic} can provide valuable insights and benefits.",
-                    f"Thank you for joining us on this journey through {topic}!"
-                ],
-                'educational': [
-                    f"Today we're learning about {topic} and why it matters.",
-                    f"Let's break down the essential concepts of {topic} step by step.",
-                    f"These are the fundamental principles you need to understand about {topic}.",
-                    f"By applying these insights about {topic}, you can achieve better results.",
-                    f"That concludes our educational overview of {topic}. Keep learning!"
-                ],
-                'promotional': [
-                    f"Discover the amazing benefits of {topic} in this video.",
-                    f"Here's everything you need to know about why {topic} is important.",
-                    f"Don't miss these incredible insights about {topic}.",
-                    f"Take action now and make the most of what {topic} offers.",
-                    f"Subscribe for more content about {topic} and related topics!"
-                ]
-            }
+            print(f"[AI] Generating AI-powered script with Gemini...")
             
-            # Select appropriate template set
-            style_key = style.lower() if style and style.lower() in templates else 'informative'
-            sentences = templates[style_key][:num_segments + 1]  # +1 for closing
+            # Use Gemini for intelligent script generation
+            script_data = generate_video_script(
+                topic=topic,
+                style=style or 'informative',
+                num_segments=num_segments,
+                duration_per_segment=4.0
+            )
             
-            # Create enhanced timing data with more realistic durations
-            azure_time_unit = 10000000
-            sentence_data = []
-            current_time = 0
+            print(f"[OK] AI script generated: {script_data['segment_count']} segments, {script_data['total_duration']:.1f}s total")
+            print(f"[OK] Title: {script_data.get('title', 'N/A')}")
             
-            for i, sentence in enumerate(sentences):
-                # More sophisticated duration estimation
-                words = len(sentence.split())
-                chars = len(sentence)
-                
-                # Estimate based on reading speed (150 words per minute average)
-                word_duration = (words / 150) * 60 * azure_time_unit
-                
-                # Add buffer time for comprehension and pacing
-                buffer_time = min(20000000, max(15000000, chars * 50000))  # 1.5-2 seconds buffer
-                
-                estimated_duration = int(word_duration + buffer_time)
-                
-                sentence_data.append({
-                    "sentence": sentence,
-                    "start_time": current_time,
-                    "end_time": current_time + estimated_duration,
-                    "duration": estimated_duration,
-                    "word_count": words,
-                    "char_count": chars
-                })
-                current_time += estimated_duration
-            
-            total_duration = current_time / azure_time_unit
-            
-            script_data = {
-                "Text": " ".join(sentences),
-                "sentences": sentence_data,
-                "topic": topic,
-                "style": style_key,
-                "total_duration": total_duration,
-                "segment_count": len(sentences),
-                "generated_at": datetime.now().isoformat()
-            }
-            
-            print(f"✓ Enhanced script generated: {len(sentences)} segments, {total_duration:.1f}s total")
             return script_data
             
         except Exception as e:
-            self.stats['errors'].append(f"Script generation failed: {e}")
-            raise LocalVideoGeneratorError(f"Script generation failed: {e}")
+            print(f"[WARNING] AI script generation failed: {e}")
+            print(f"[FALLBACK] Using template-based generation...")
+            
+            # Fallback to template generation
+            return self.generate_fallback_script(topic, style, num_segments)
+    
+    def generate_fallback_script(self, topic: str, style: str, num_segments: int) -> Dict[str, Any]:
+        """
+        Fallback script generation if AI fails
+        """
+        templates = {
+            'informative': [
+                f"{topic} is a fascinating subject with many important aspects to explore.",
+                f"Understanding the key principles of {topic} provides valuable insights.",
+                f"There are several critical factors that make {topic} significant today.",
+                f"The impact of {topic} extends far beyond what most people realize.",
+                f"These insights about {topic} can help you make better informed decisions."
+            ],
+            'educational': [
+                f"Let's learn about the fundamental concepts of {topic}.",
+                f"The science behind {topic} reveals some interesting discoveries.",
+                f"Researchers have found that {topic} plays a crucial role in many areas.",
+                f"By understanding {topic}, we can better appreciate its applications.",
+                f"This knowledge about {topic} opens up new possibilities for learning."
+            ],
+            'promotional': [
+                f"Discover why {topic} is becoming increasingly important.",
+                f"Here's what experts are saying about the benefits of {topic}.",
+                f"Don't miss out on understanding how {topic} can make a difference.",
+                f"Take advantage of these insights about {topic} to stay ahead.",
+                f"Join thousands who are already benefiting from knowledge about {topic}."
+            ]
+        }
+        
+        style_key = style.lower() if style and style.lower() in templates else 'informative'
+        sentences = templates[style_key][:num_segments]
+        
+        # Create timing data
+        azure_time_unit = 10000000
+        sentence_data = []
+        current_time = 0
+        
+        for i, sentence in enumerate(sentences):
+            words = len(sentence.split())
+            chars = len(sentence)
+            
+            word_duration = (words / 150) * 60 * azure_time_unit
+            buffer_time = min(20000000, max(15000000, chars * 50000))
+            estimated_duration = int(word_duration + buffer_time)
+            
+            sentence_data.append({
+                "sentence": sentence,
+                "start_time": current_time,
+                "end_time": current_time + estimated_duration,
+                "duration": estimated_duration,
+                "word_count": words,
+                "char_count": chars
+            })
+            current_time += estimated_duration
+        
+        return {
+            "Text": " ".join(sentences),
+            "sentences": sentence_data,
+            "topic": topic,
+            "style": style_key,
+            "total_duration": current_time / azure_time_unit,
+            "segment_count": len(sentences),
+            "generated_at": datetime.now().isoformat(),
+            "generated_by": "fallback_template"
+        }
     
     def create_local_json_file(self, data: Dict[str, Any], filename: str) -> str:
         """Create a local JSON file and return its path"""
@@ -174,7 +186,7 @@ class LocalVideoGenerator:
             self.stats['warnings'].append(f"Unknown model '{params['image_model']}', using 'flux'")
             params["image_model"] = "flux"
         
-        print(f"✓ Parameters validated: {params['width']}x{params['height']}, {params['fps']}fps, {params['image_model']}")
+        print(f"[OK] Parameters validated: {params['width']}x{params['height']}, {params['fps']}fps, {params['image_model']}")
         return params
     
     def generate_video(self, topic: str, **kwargs) -> Dict[str, Any]:
@@ -184,7 +196,7 @@ class LocalVideoGenerator:
         generation_start = time.time()
         
         try:
-            print(f"\n🚀 Enhanced Local Video Generation Starting")
+            print(f"\nEnhanced Local Video Generation Starting")
             print(f"   Topic: {topic}")
             print(f"   Session: {self.session_id}")
             print(f"   Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -200,7 +212,7 @@ class LocalVideoGenerator:
             }
             
             # Step 1: Enhanced Script Generation
-            print(f"\n📝 Step 1: Generating enhanced script...")
+            print(f"\nStep 1: Generating enhanced script...")
             script_data = self.generate_enhanced_script(
                 params["topic"], 
                 params["style"], 
@@ -209,15 +221,16 @@ class LocalVideoGenerator:
             script_file = self.create_local_json_file(script_data, "enhanced_script.json")
             results['script_file'] = script_file
             results['script_data'] = script_data
-            print(f"✓ Enhanced script generated: {script_file}")
+            print(f"[OK] Enhanced script generated: {script_file}")
             
-            # Step 2: Enhanced Speech Generation
-            print(f"\n🎤 Step 2: Generating speech...")
+            # Step 2: Enhanced Speech Generation with ElevenLabs
+            print(f"\n[AUDIO] Step 2: Generating high-quality speech with ElevenLabs...")
             try:
                 speech_event = {
                     "text": script_data["Text"],
                     "language": params["language"],
-                    "voice_speed": params["voice_speed"]
+                    "voice_speed": params["voice_speed"],
+                    "format": "mp3"  # ElevenLabs native format
                 }
                 speech_result = generate_speech(speech_event, None)
                 
@@ -229,7 +242,9 @@ class LocalVideoGenerator:
                 if not audio_file or not os.path.exists(audio_file):
                     raise Exception("Speech generation did not produce audio file")
                 
-                session_audio = os.path.join(self.session_dir, f"enhanced_narration_{self.session_id}.wav")
+                # Keep original format (MP3 from ElevenLabs) - MoviePy can handle it
+                file_extension = os.path.splitext(audio_file)[1]  # Get original extension
+                session_audio = os.path.join(self.session_dir, f"enhanced_narration_{self.session_id}{file_extension}")
                 os.rename(audio_file, session_audio)
                 speech_result['audio_url'] = session_audio
                 
@@ -239,16 +254,16 @@ class LocalVideoGenerator:
                     raise Exception(f"Generated audio file is too small ({audio_size} bytes)")
                 
                 results.update(speech_result)
-                print(f"✓ Speech generated: {session_audio} ({audio_size/1024:.1f} KB)")
+                print(f"[OK] Speech generated: {session_audio} ({audio_size/1024:.1f} KB)")
                 
             except Exception as speech_error:
                 error_msg = f"Speech generation failed: {speech_error}"
                 self.stats['errors'].append(error_msg)
-                print(f"❌ {error_msg}")
+                print(f"[ERROR] {error_msg}")
                 raise LocalVideoGeneratorError(error_msg)
             
             # Step 3: Enhanced Video Generation from Images
-            print(f"\n🎨 Step 3: Generating enhanced video from images...")
+            print(f"\n[STYLE] Step 3: Generating enhanced video from images...")
             try:
                 # Create sentences JSON file for image generation
                 sentences_file = self.create_local_json_file(script_data["sentences"], "enhanced_sentences.json")
@@ -291,16 +306,16 @@ class LocalVideoGenerator:
                 
                 results.update(video_result)
                 self.stats['images_generated'] = video_result.get('images_generated', 0)
-                print(f"✓ Enhanced video generated: {session_video} ({video_size/1024/1024:.1f} MB)")
+                print(f"[OK] Enhanced video generated: {session_video} ({video_size/1024/1024:.1f} MB)")
                 
             except Exception as video_error:
                 error_msg = f"Video generation failed: {video_error}"
                 self.stats['errors'].append(error_msg)
-                print(f"❌ {error_msg}")
+                print(f"[ERROR] {error_msg}")
                 raise LocalVideoGeneratorError(error_msg)
             
             # Step 4: Enhanced Audio-Video Combination
-            print(f"\n🎬 Step 4: Combining audio and video with enhanced processing...")
+            print(f"\n[VIDEO] Step 4: Combining audio and video with enhanced processing...")
             
             try:
                 # Enhanced MoviePy configuration
@@ -308,7 +323,7 @@ class LocalVideoGenerator:
                 import imageio_ffmpeg as iio
                 
                 mp_config.IMAGEIO_FFMPEG_EXE = iio.get_ffmpeg_exe()
-                print(f"✓ FFmpeg configured: {mp_config.IMAGEIO_FFMPEG_EXE}")
+                print(f"[OK] FFmpeg configured: {mp_config.IMAGEIO_FFMPEG_EXE}")
                 
                 from moviepy.editor import VideoFileClip, AudioFileClip
                 
@@ -326,7 +341,7 @@ class LocalVideoGenerator:
                 
                 # Enhanced synchronization logic
                 if abs(audio_duration - video_duration) > 0.5:  # More than 0.5s difference
-                    print(f"⚠ Duration mismatch: audio={audio_duration:.1f}s, video={video_duration:.1f}s")
+                    print(f"[WARNING] Duration mismatch: audio={audio_duration:.1f}s, video={video_duration:.1f}s")
                     
                     if audio_duration > video_duration:
                         print("Trimming audio to match video")
@@ -335,7 +350,7 @@ class LocalVideoGenerator:
                         print("Trimming video to match audio")
                         video_clip = video_clip.subclip(0, audio_duration)
                 else:
-                    print("✓ Audio and video durations are well matched")
+                    print("[OK] Audio and video durations are well matched")
                 
                 # Combine with enhanced settings
                 print("Combining audio and video...")
@@ -353,8 +368,7 @@ class LocalVideoGenerator:
                     codec_settings = {'codec': 'libx264', 'audio_codec': 'aac', 'bitrate': '2000k'}
                 
                 final_clip.write_videofile(
-                    final_video, 
-                    verbose=False, logger=None,
+                    final_video,
                     temp_audiofile='temp-audio-final.m4a',
                     remove_temp=True,
                     **codec_settings
@@ -370,15 +384,19 @@ class LocalVideoGenerator:
                 if final_size < 50000:  # Less than 50KB suggests failure
                     raise Exception(f"Final video file is too small ({final_size} bytes)")
                 
-                print(f"✓ Enhanced audio-video combination completed")
+                print(f"[OK] Enhanced audio-video combination completed")
                 print(f"   Final video: {final_video} ({final_size/1024/1024:.1f} MB)")
                 
             except Exception as combine_error:
                 error_msg = f"Audio-video combination failed: {combine_error}"
-                print(f"❌ {error_msg}")
+                print(f"[ERROR] {error_msg}")
+                print(f"[DEBUG] Audio file: {session_audio}")
+                print(f"[DEBUG] Video file: {session_video}")
+                print(f"[DEBUG] Audio exists: {os.path.exists(session_audio) if 'session_audio' in locals() else 'N/A'}")
+                print(f"[DEBUG] Video exists: {os.path.exists(session_video) if 'session_video' in locals() else 'N/A'}")
                 self.stats['warnings'].append(error_msg)
                 
-                print("⚠ Using silent video as fallback")
+                print("[WARNING] Using silent video as fallback")
                 final_video = session_video
                 audio_duration = results.get('duration', script_data.get('total_duration', 0))
             
@@ -401,7 +419,7 @@ class LocalVideoGenerator:
             })
             
             # Enhanced completion summary
-            print(f"\n🎉 Enhanced Video Generation Completed Successfully!")
+            print(f"\n[SUCCESS] Enhanced Video Generation Completed Successfully!")
             print(f"   • Session: {self.session_id}")
             print(f"   • Topic: {params['topic']}")
             print(f"   • Duration: {audio_duration:.1f}s")
@@ -419,7 +437,7 @@ class LocalVideoGenerator:
             processing_time = time.time() - generation_start
             error_msg = str(lvge)
             
-            print(f"\n❌ Local Video Generator Error: {error_msg}")
+            print(f"\n[ERROR] Local Video Generator Error: {error_msg}")
             
             results.update({
                 'success': False,
@@ -437,7 +455,7 @@ class LocalVideoGenerator:
             error_msg = f"Unexpected error during video generation: {e}"
             self.stats['errors'].append(error_msg)
             
-            print(f"\n💥 Critical Error: {error_msg}")
+            print(f"\nCritical Error: {error_msg}")
             
             results.update({
                 'success': False,
@@ -502,7 +520,7 @@ Examples:
     
     try:
         # Display startup information
-        print(f"\n🎥 Enhanced Local AI Video Generator v2.0")
+        print(f"\n[DURATION] Enhanced Local AI Video Generator v2.0")
         print(f"   Topic: {args.topic}")
         print(f"   Resolution: {args.width}x{args.height} @ {args.fps}fps")
         print(f"   Model: {args.model} ({args.quality} quality)")
@@ -530,22 +548,22 @@ Examples:
         
         # Enhanced result reporting
         if result['success']:
-            print(f"\n\n✨ SUCCESS! Enhanced video generation completed \u2728")
-            print(f"   📹 Video file: {result['final_video']}")
-            print(f"   📁 Session directory: {result['session_dir']}")
-            print(f"   ⏱️ Processing time: {result['processing_time']:.1f} seconds")
-            print(f"   💾 File size: {result['final_video_size_mb']:.1f} MB")
-            print(f"   🎥 Duration: {result['duration']:.1f} seconds")
+            print(f"\n\n[SUCCESS] SUCCESS! Enhanced video generation completed")
+            print(f"   [VIDEO] Video file: {result['final_video']}")
+            print(f"   [FOLDER] Session directory: {result['session_dir']}")
+            print(f"   [TIME] Processing time: {result['processing_time']:.1f} seconds")
+            print(f"   [SAVE] File size: {result['final_video_size_mb']:.1f} MB")
+            print(f"   [DURATION] Duration: {result['duration']:.1f} seconds")
             
             if args.verbose and result.get('generation_stats'):
                 stats = result['generation_stats']
-                print(f"\n   📈 Generation Statistics:")
+                print(f"\n   [STATS] Generation Statistics:")
                 if stats.get('images_generated'):
                     print(f"      • Images generated: {stats['images_generated']}")
                 if stats.get('warnings'):
                     print(f"      • Warnings: {len(stats['warnings'])}")
         else:
-            print(f"\n\n❌ FAILED: Video generation failed")
+            print(f"\n\n[ERROR] FAILED: Video generation failed")
             print(f"   Error: {result['error']}")
             print(f"   Processing time: {result.get('processing_time', 0):.1f} seconds")
             
@@ -558,7 +576,7 @@ Examples:
         print(f"\n\n⚡ Generation interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n\n💥 Critical error: {e}")
+        print(f"\n\nCritical error: {e}")
         return 1
         
     return 0

@@ -1,0 +1,42 @@
+{
+  "Text": "Let's learn about the fundamental concepts of Machine Learning Basics. The science behind Machine Learning Basics reveals some interesting discoveries. Researchers have found that Machine Learning Basics plays a crucial role in many areas.",
+  "title": "Educational Overview: Machine Learning Basics",
+  "sentences": [
+    {
+      "sentence": "Let's learn about the fundamental concepts of Machine Learning Basics.",
+      "start_time": 0,
+      "end_time": 40000000,
+      "duration": 40000000,
+      "word_count": 10,
+      "char_count": 70,
+      "focus": "Key point 1",
+      "segment_number": 1
+    },
+    {
+      "sentence": "The science behind Machine Learning Basics reveals some interesting discoveries.",
+      "start_time": 40000000,
+      "end_time": 80000000,
+      "duration": 40000000,
+      "word_count": 10,
+      "char_count": 80,
+      "focus": "Key point 2",
+      "segment_number": 2
+    },
+    {
+      "sentence": "Researchers have found that Machine Learning Basics plays a crucial role in many areas.",
+      "start_time": 80000000,
+      "end_time": 120000000,
+      "duration": 40000000,
+      "word_count": 14,
+      "char_count": 87,
+      "focus": "Key point 3",
+      "segment_number": 3
+    }
+  ],
+  "topic": "Machine Learning Basics",
+  "style": "educational",
+  "total_duration": 12.0,
+  "segment_count": 3,
+  "generated_at": "2025-09-06T22:45:28.430348",
+  "generated_by": "fallback_template"
+}

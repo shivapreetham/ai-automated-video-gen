@@ -1,0 +1,52 @@
+[
+  {
+    "sentence": "Artificial intelligence, or AI, involves creating machines capable of performing tasks that typically require human intelligence.",
+    "start_time": 0,
+    "end_time": 64500000,
+    "duration": 64500000,
+    "word_count": 16,
+    "char_count": 129,
+    "focus": "Defining AI",
+    "segment_number": 1
+  },
+  {
+    "sentence": "Machine learning, a key part of AI, allows systems to learn from data without explicit programming, improving their performance over time.",
+    "start_time": 64500000,
+    "end_time": 148500000,
+    "duration": 84000000,
+    "word_count": 21,
+    "char_count": 138,
+    "focus": "Machine Learning explained",
+    "segment_number": 2
+  },
+  {
+    "sentence": "AI powers applications like self-driving cars, medical diagnosis tools, and personalized recommendations, transforming various industries.",
+    "start_time": 148500000,
+    "end_time": 217500000,
+    "duration": 69000000,
+    "word_count": 15,
+    "char_count": 138,
+    "focus": "AI applications",
+    "segment_number": 3
+  },
+  {
+    "sentence": "Ethical considerations surrounding AI bias, job displacement, and autonomous weapons systems are crucial for responsible development.",
+    "start_time": 217500000,
+    "end_time": 284000000,
+    "duration": 66500000,
+    "word_count": 16,
+    "char_count": 133,
+    "focus": "Ethical implications of AI",
+    "segment_number": 4
+  },
+  {
+    "sentence": "The rapid advancement of AI necessitates ongoing research and discussion to ensure its beneficial and safe integration into society.",
+    "start_time": 284000000,
+    "end_time": 360000000,
+    "duration": 76000000,
+    "word_count": 19,
+    "char_count": 132,
+    "focus": "Future of AI",
+    "segment_number": 5
+  }
+]
