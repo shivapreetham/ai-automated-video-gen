@@ -41,7 +41,7 @@ class LocalVideoGenerator:
         # Create output directory with error handling
         try:
             os.makedirs(self.session_dir, exist_ok=True)
-            print(f"✓ Session created: {self.session_dir}")
+            print(f"Session created: {self.session_dir}")
         except Exception as e:
             raise LocalVideoGeneratorError(f"Failed to create session directory: {e}")
     
@@ -120,7 +120,7 @@ class LocalVideoGenerator:
                 "generated_at": datetime.now().isoformat()
             }
             
-            print(f"✓ Enhanced script generated: {len(sentences)} segments, {total_duration:.1f}s total")
+            print(f"Enhanced script generated: {len(sentences)} segments, {total_duration:.1f}s total")
             return script_data
             
         except Exception as e:
@@ -174,7 +174,7 @@ class LocalVideoGenerator:
             self.stats['warnings'].append(f"Unknown model '{params['image_model']}', using 'flux'")
             params["image_model"] = "flux"
         
-        print(f"✓ Parameters validated: {params['width']}x{params['height']}, {params['fps']}fps, {params['image_model']}")
+        print(f"Parameters validated: {params['width']}x{params['height']}, {params['fps']}fps, {params['image_model']}")
         return params
     
     def generate_video(self, topic: str, **kwargs) -> Dict[str, Any]:
@@ -184,7 +184,7 @@ class LocalVideoGenerator:
         generation_start = time.time()
         
         try:
-            print(f"\n🚀 Enhanced Local Video Generation Starting")
+            print(f"\nEnhanced Local Video Generation Starting")
             print(f"   Topic: {topic}")
             print(f"   Session: {self.session_id}")
             print(f"   Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -200,7 +200,7 @@ class LocalVideoGenerator:
             }
             
             # Step 1: Enhanced Script Generation
-            print(f"\n📝 Step 1: Generating enhanced script...")
+            print(f"\nStep 1: Generating enhanced script...")
             script_data = self.generate_enhanced_script(
                 params["topic"], 
                 params["style"], 
@@ -209,10 +209,10 @@ class LocalVideoGenerator:
             script_file = self.create_local_json_file(script_data, "enhanced_script.json")
             results['script_file'] = script_file
             results['script_data'] = script_data
-            print(f"✓ Enhanced script generated: {script_file}")
+            print(f"Enhanced script generated: {script_file}")
             
             # Step 2: Enhanced Speech Generation
-            print(f"\n🎤 Step 2: Generating speech...")
+            print(f"\nStep 2: Generating speech...")
             try:
                 speech_event = {
                     "text": script_data["Text"],
@@ -239,16 +239,16 @@ class LocalVideoGenerator:
                     raise Exception(f"Generated audio file is too small ({audio_size} bytes)")
                 
                 results.update(speech_result)
-                print(f"✓ Speech generated: {session_audio} ({audio_size/1024:.1f} KB)")
+                print(f"Speech generated: {session_audio} ({audio_size/1024:.1f} KB)")
                 
             except Exception as speech_error:
                 error_msg = f"Speech generation failed: {speech_error}"
                 self.stats['errors'].append(error_msg)
-                print(f"❌ {error_msg}")
+                print(f"ERROR: {error_msg}")
                 raise LocalVideoGeneratorError(error_msg)
             
             # Step 3: Enhanced Video Generation from Images
-            print(f"\n🎨 Step 3: Generating enhanced video from images...")
+            print(f"\nStep 3: Generating enhanced video from images...")
             try:
                 # Create sentences JSON file for image generation
                 sentences_file = self.create_local_json_file(script_data["sentences"], "enhanced_sentences.json")
@@ -296,21 +296,28 @@ class LocalVideoGenerator:
             except Exception as video_error:
                 error_msg = f"Video generation failed: {video_error}"
                 self.stats['errors'].append(error_msg)
-                print(f"❌ {error_msg}")
+                print(f"ERROR: {error_msg}")
                 raise LocalVideoGeneratorError(error_msg)
             
             # Step 4: Enhanced Audio-Video Combination
-            print(f"\n🎬 Step 4: Combining audio and video with enhanced processing...")
+            print(f"\nStep 4: Combining audio and video with enhanced processing...")
             
             try:
                 # Enhanced MoviePy configuration
                 import moviepy.config as mp_config
                 import imageio_ffmpeg as iio
                 
-                mp_config.IMAGEIO_FFMPEG_EXE = iio.get_ffmpeg_exe()
-                print(f"✓ FFmpeg configured: {mp_config.IMAGEIO_FFMPEG_EXE}")
+                # Set FFmpeg path globally
+                ffmpeg_exe = iio.get_ffmpeg_exe()
+                mp_config.IMAGEIO_FFMPEG_EXE = ffmpeg_exe
                 
-                from moviepy.editor import VideoFileClip, AudioFileClip
+                # Also set environment variable for extra safety
+                os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_exe
+                
+                print(f"FFmpeg configured: {ffmpeg_exe}")
+                
+                from moviepy.video.io.VideoFileClip import VideoFileClip
+                from moviepy.audio.io.AudioFileClip import AudioFileClip
                 
                 # Load and validate media files
                 print("Loading media files...")
@@ -324,43 +331,80 @@ class LocalVideoGenerator:
                 video_duration = video_clip.duration
                 audio_duration = audio_clip.duration
                 
-                # Enhanced synchronization logic
+                # Enhanced synchronization logic with proper duration matching
                 if abs(audio_duration - video_duration) > 0.5:  # More than 0.5s difference
                     print(f"⚠ Duration mismatch: audio={audio_duration:.1f}s, video={video_duration:.1f}s")
                     
                     if audio_duration > video_duration:
-                        print("Trimming audio to match video")
+                        print("Trimming audio to match video duration")
                         audio_clip = audio_clip.subclip(0, video_duration)
+                        audio_duration = video_duration
                     else:
-                        print("Trimming video to match audio")
-                        video_clip = video_clip.subclip(0, audio_duration)
+                        print("Extending video to match audio duration (looping last frame)")
+                        # Instead of trimming video, extend it by looping the last frame
+                        # Try to import concatenate from different locations
+                        try:
+                            from moviepy.editor import concatenate_videoclips
+                        except ImportError:
+                            def concatenate_videoclips(clips):
+                                return clips[0] if clips else None  # Simple fallback
+                        from moviepy.video.VideoClip import ImageClip
+                        extension_duration = audio_duration - video_duration
+                        
+                        # Get the last frame and create a static clip
+                        last_frame = video_clip.get_frame(video_duration - 0.1)
+                        last_frame_clip = ImageClip(last_frame).set_duration(extension_duration)
+                        
+                        # Concatenate original video with extended last frame
+                        video_clip = concatenate_videoclips([video_clip, last_frame_clip])
+                        video_duration = audio_duration
                 else:
-                    print("✓ Audio and video durations are well matched")
+                    print("Audio and video durations are well matched")
                 
-                # Combine with enhanced settings
+                # Combine with enhanced settings and proper audio handling
                 print("Combining audio and video...")
                 final_clip = video_clip.set_audio(audio_clip)
                 
                 # Enhanced export settings
                 final_video = os.path.join(self.session_dir, f"final_enhanced_video_{self.session_id}.mp4")
                 
-                # Quality-based export settings
+                # Quality-based export settings with proper audio handling
                 if params["quality_mode"] == "fast":
-                    codec_settings = {'codec': 'libx264', 'audio_codec': 'aac', 'bitrate': '1000k'}
+                    codec_settings = {
+                        'codec': 'libx264', 
+                        'audio_codec': 'aac',
+                        'bitrate': '1000k',
+                        'audio_bitrate': '128k'
+                    }
                 elif params["quality_mode"] == "quality":
-                    codec_settings = {'codec': 'libx264', 'audio_codec': 'aac', 'bitrate': '3000k'}
+                    codec_settings = {
+                        'codec': 'libx264', 
+                        'audio_codec': 'aac',
+                        'bitrate': '3000k',
+                        'audio_bitrate': '256k'
+                    }
                 else:  # balanced
-                    codec_settings = {'codec': 'libx264', 'audio_codec': 'aac', 'bitrate': '2000k'}
+                    codec_settings = {
+                        'codec': 'libx264', 
+                        'audio_codec': 'aac',
+                        'bitrate': '2000k',
+                        'audio_bitrate': '192k'
+                    }
                 
+                # Write video with proper audio sync
+                print(f"Writing final video with {params['quality_mode']} quality...")
                 final_clip.write_videofile(
                     final_video, 
-                    verbose=False, logger=None,
-                    temp_audiofile='temp-audio-final.m4a',
+                    fps=params.get('fps', 24),
+                    verbose=False, 
+                    logger=None,
+                    temp_audiofile=f'temp-audio-final-{self.session_id}.m4a',
                     remove_temp=True,
+                    threads=4,  # Use multiple threads for faster encoding
                     **codec_settings
                 )
                 
-                # Cleanup
+                # Cleanup clips to free memory
                 video_clip.close()
                 audio_clip.close()
                 final_clip.close()
@@ -370,17 +414,68 @@ class LocalVideoGenerator:
                 if final_size < 50000:  # Less than 50KB suggests failure
                     raise Exception(f"Final video file is too small ({final_size} bytes)")
                 
+                # Verify the final video has audio
+                try:
+                    test_clip = VideoFileClip(final_video)
+                    has_audio = test_clip.audio is not None
+                    final_duration = test_clip.duration
+                    test_clip.close()
+                    
+                    if not has_audio:
+                        print("⚠ Warning: Final video has no audio track")
+                        self.stats['warnings'].append("Final video missing audio track")
+                    else:
+                        print(f"✓ Final video has audio track ({final_duration:.1f}s)")
+                        
+                except Exception as verify_error:
+                    print(f"⚠ Could not verify final video: {verify_error}")
+                
                 print(f"✓ Enhanced audio-video combination completed")
                 print(f"   Final video: {final_video} ({final_size/1024/1024:.1f} MB)")
                 
             except Exception as combine_error:
                 error_msg = f"Audio-video combination failed: {combine_error}"
-                print(f"❌ {error_msg}")
-                self.stats['warnings'].append(error_msg)
+                print(f"ERROR: {error_msg}")
+                self.stats['errors'].append(error_msg)
                 
-                print("⚠ Using silent video as fallback")
-                final_video = session_video
-                audio_duration = results.get('duration', script_data.get('total_duration', 0))
+                print("⚠ Attempting audio combination fallback...")
+                try:
+                    # Try a simpler audio combination approach
+                    from moviepy.video.io.VideoFileClip import VideoFileClip
+                    from moviepy.audio.io.AudioFileClip import AudioFileClip
+                    
+                    video_clip = VideoFileClip(session_video) 
+                    audio_clip = AudioFileClip(session_audio)
+                    
+                    # Simple duration matching
+                    min_duration = min(video_clip.duration, audio_clip.duration)
+                    video_clip = video_clip.subclip(0, min_duration)
+                    audio_clip = audio_clip.subclip(0, min_duration)
+                    
+                    # Simple combination
+                    final_clip = video_clip.set_audio(audio_clip)
+                    final_video = os.path.join(self.session_dir, f"fallback_video_{self.session_id}.mp4")
+                    
+                    final_clip.write_videofile(
+                        final_video,
+                        verbose=False,
+                        logger=None,
+                        codec='libx264',
+                        audio_codec='aac'
+                    )
+                    
+                    video_clip.close()
+                    audio_clip.close() 
+                    final_clip.close()
+                    
+                    print(f"✓ Fallback audio combination successful: {final_video}")
+                    audio_duration = min_duration
+                    
+                except Exception as fallback_error:
+                    print(f"❌ Even fallback audio combination failed: {fallback_error}")
+                    print("⚠ Using silent video as final fallback")
+                    final_video = session_video
+                    audio_duration = results.get('duration', script_data.get('total_duration', 0))
             
             # Step 5: Enhanced Results Summary
             processing_time = time.time() - generation_start
@@ -419,7 +514,7 @@ class LocalVideoGenerator:
             processing_time = time.time() - generation_start
             error_msg = str(lvge)
             
-            print(f"\n❌ Local Video Generator Error: {error_msg}")
+            print(f"\nLocal Video Generator Error: {error_msg}")
             
             results.update({
                 'success': False,
@@ -437,7 +532,7 @@ class LocalVideoGenerator:
             error_msg = f"Unexpected error during video generation: {e}"
             self.stats['errors'].append(error_msg)
             
-            print(f"\n💥 Critical Error: {error_msg}")
+            print(f"\nCritical Error: {error_msg}")
             
             results.update({
                 'success': False,

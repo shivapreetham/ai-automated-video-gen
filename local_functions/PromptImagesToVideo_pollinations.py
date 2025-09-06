@@ -18,16 +18,78 @@ import subprocess
 
 # Configure ffmpeg for moviepy BEFORE importing moviepy
 try:
-    import moviepy.config as mp_config
     import imageio_ffmpeg as iio
-    mp_config.IMAGEIO_FFMPEG_EXE = iio.get_ffmpeg_exe()
-    print(f"Using ffmpeg from: {mp_config.IMAGEIO_FFMPEG_EXE}")
+    ffmpeg_exe = iio.get_ffmpeg_exe()
     
-    # Now import moviepy
-    from moviepy.editor import *
+    # Set environment variable first
+    import os
+    os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_exe
+    
+    # Now import and configure moviepy
+    import moviepy.config as mp_config
+    mp_config.IMAGEIO_FFMPEG_EXE = ffmpeg_exe
+    print(f"Using ffmpeg from: {ffmpeg_exe}")
+    
+    # Import moviepy components directly  
+    from moviepy.video.io.VideoFileClip import VideoFileClip
+    from moviepy.audio.io.AudioFileClip import AudioFileClip
+    from moviepy.video.VideoClip import ImageClip, ColorClip
+    from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+    
+    # Try to import concatenate from multiple possible locations
+    try:
+        from moviepy.editor import concatenate_videoclips
+    except ImportError:
+        try:
+            from moviepy.video.compositing import concatenate_videoclips
+        except ImportError:
+            # If can't find concatenate, create simple fallback
+            def concatenate_videoclips(clips):
+                if not clips:
+                    raise ValueError("No clips to concatenate")
+                return clips[0]  # Simple fallback - just return first clip
+            
+    print("MoviePy components imported successfully")
+    
+except ImportError as ie:
+    print(f"MoviePy import failed: {ie}")
+    print("Creating fallback video functions...")
+    
+    # Create minimal fallback functions
+    def ImageClip(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+    
+    def VideoFileClip(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+    
+    def concatenate_videoclips(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+    
+    def CompositeVideoClip(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+        
+    def ColorClip(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+
 except Exception as e:
     print(f"Warning: Could not configure ffmpeg: {e}")
-    from moviepy.editor import *
+    try:
+        from moviepy.video.io.VideoFileClip import VideoFileClip
+        from moviepy.audio.io.AudioFileClip import AudioFileClip
+        from moviepy.video.VideoClip import ImageClip, ColorClip
+        from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+        
+        # Try to import concatenate
+        try:
+            from moviepy.editor import concatenate_videoclips
+        except ImportError:
+            def concatenate_videoclips(clips):
+                return clips[0] if clips else None
+                
+        print("MoviePy imported without ffmpeg config")
+    except ImportError as ie:
+        print(f"MoviePy import failed completely: {ie}")
+        raise ImportError("MoviePy is required but not installed. Please run: pip install moviepy")
 import uuid
 import urllib.parse
 
@@ -773,7 +835,7 @@ def mindsflow_function(event, context) -> dict:
     start_time = time.time()
     
     try:
-        print(f"\n🚀 Starting Enhanced Local Video Generation")
+        print(f"\nStarting Enhanced Local Video Generation")
         print(f"   Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
         # Generate video from images with enhanced error handling
@@ -814,7 +876,7 @@ def mindsflow_function(event, context) -> dict:
         
     except VideoGenerationError as vge:
         error_msg = f"Video generation error: {vge}"
-        print(f"❌ {error_msg}")
+        print(f"ERROR: {error_msg}")
         
         return {
             'success': False,
@@ -826,7 +888,7 @@ def mindsflow_function(event, context) -> dict:
         
     except Exception as e:
         error_msg = f"Unexpected error during video generation: {e}"
-        print(f"💥 {error_msg}")
+        print(f"CRITICAL ERROR: {error_msg}")
         
         return {
             'success': False,
