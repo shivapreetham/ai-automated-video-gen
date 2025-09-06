@@ -12,7 +12,7 @@ import time
 from typing import Dict, Any, Optional
 
 # ElevenLabs configuration
-ELEVENLABS_API_KEY = "sk_8d237fdd4440012cba813bef44f660f27f4f633ddd0782b7"
+ELEVENLABS_API_KEY = "sk_199c37d214698f1395b5ce8145696498acb2e1acaa777d30"
 ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1"
 
 # Available voices (you can get more via API)

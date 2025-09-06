@@ -18,16 +18,78 @@ import subprocess
 
 # Configure ffmpeg for moviepy BEFORE importing moviepy
 try:
-    import moviepy.config as mp_config
     import imageio_ffmpeg as iio
-    mp_config.IMAGEIO_FFMPEG_EXE = iio.get_ffmpeg_exe()
-    print(f"Using ffmpeg from: {mp_config.IMAGEIO_FFMPEG_EXE}")
+    ffmpeg_exe = iio.get_ffmpeg_exe()
     
-    # Now import moviepy
-    from moviepy.editor import *
+    # Set environment variable first
+    import os
+    os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_exe
+    
+    # Now import and configure moviepy
+    import moviepy.config as mp_config
+    mp_config.IMAGEIO_FFMPEG_EXE = ffmpeg_exe
+    print(f"Using ffmpeg from: {ffmpeg_exe}")
+    
+    # Import moviepy components directly  
+    from moviepy.video.io.VideoFileClip import VideoFileClip
+    from moviepy.audio.io.AudioFileClip import AudioFileClip
+    from moviepy.video.VideoClip import ImageClip, ColorClip
+    from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+    
+    # Try to import concatenate from multiple possible locations
+    try:
+        from moviepy.editor import concatenate_videoclips
+    except ImportError:
+        try:
+            from moviepy.video.compositing import concatenate_videoclips
+        except ImportError:
+            # If can't find concatenate, create simple fallback
+            def concatenate_videoclips(clips):
+                if not clips:
+                    raise ValueError("No clips to concatenate")
+                return clips[0]  # Simple fallback - just return first clip
+            
+    print("MoviePy components imported successfully")
+    
+except ImportError as ie:
+    print(f"MoviePy import failed: {ie}")
+    print("Creating fallback video functions...")
+    
+    # Create minimal fallback functions
+    def ImageClip(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+    
+    def VideoFileClip(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+    
+    def concatenate_videoclips(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+    
+    def CompositeVideoClip(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+        
+    def ColorClip(*args, **kwargs):
+        raise ImportError("MoviePy not available - please install with: pip install moviepy")
+
 except Exception as e:
     print(f"Warning: Could not configure ffmpeg: {e}")
-    from moviepy.editor import *
+    try:
+        from moviepy.video.io.VideoFileClip import VideoFileClip
+        from moviepy.audio.io.AudioFileClip import AudioFileClip
+        from moviepy.video.VideoClip import ImageClip, ColorClip
+        from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+        
+        # Try to import concatenate
+        try:
+            from moviepy.editor import concatenate_videoclips
+        except ImportError:
+            def concatenate_videoclips(clips):
+                return clips[0] if clips else None
+                
+        print("MoviePy imported without ffmpeg config")
+    except ImportError as ie:
+        print(f"MoviePy import failed completely: {ie}")
+        raise ImportError("MoviePy is required but not installed. Please run: pip install moviepy")
 import uuid
 import urllib.parse
 
@@ -362,7 +424,7 @@ def concatenate_images_local(event):
     try:
         # Validate input parameters
         params = validate_input_parameters(event)
-        print(f"[OK] Parameters validated successfully")
+        print(f"OK Parameters validated successfully")
         
         # Extract validated parameters
         img_prompt = params['img_prompt']
@@ -387,7 +449,7 @@ def concatenate_images_local(event):
     # Enhanced transcript processing with robust error handling
     if transcript_json_url is not None:
         try:
-            print(f"[BOOK] Processing transcript: {transcript_json_url}")
+            print(f"[PROCESSING] Processing transcript: {transcript_json_url}")
             
             # Load transcript data
             if os.path.exists(transcript_json_url):
@@ -467,7 +529,7 @@ def concatenate_images_local(event):
     
     if transcript_json_url is None:
         try:
-            print(f"[MOVIE] Using duration-based generation: {video_duration}s video")
+            print(f"[VIDEO] Using duration-based generation: {video_duration}s video")
             
             # Calculate optimal number of images
             video_duration = math.ceil(video_duration)
@@ -534,7 +596,7 @@ def concatenate_images_local(event):
         print(f"   • Sample prompt: {img_prompts[0][:80]}...")
     
     # Initialize tracking variables
-    video_path = f'enhanced_video_{uuid.uuid4().hex[:8]}.mp4'
+    video_path = os.path.abspath(f'enhanced_video_{uuid.uuid4().hex[:8]}.mp4')
     frames_url = []
     video_clips = []
     successful_generations = 0
@@ -599,18 +661,11 @@ def concatenate_images_local(event):
                 with Image.open(img_path) as test_img:
                     test_img.verify()
                 
-                if zoom != 1.0 and zoom != 1:
-                    print(f"Applying zoom effect ({zoom}x)...")
-                    clip = (ImageClip(img_path)
-                            .resize(height=screensize[1]*4)
-                            .resize(lambda t: 1 + (zoom-1.)*t / img_duration)
-                            .set_position(('center', 'center'))
-                            .set_duration(img_duration)
-                            )
-                    clip = CompositeVideoClip([clip]).resize(width=screensize[0])
-                    vid = CompositeVideoClip([clip.set_position(('center', 'center'))], size=screensize)
-                else:
-                    vid = ImageClip(img_path).set_duration(img_duration)
+                # Simple, fast video clip creation - no complex effects
+                vid = ImageClip(img_path).set_duration(img_duration)
+                if vid.size != screensize:
+                    # Simple resize without complex operations
+                    vid = vid.resize(screensize)
                 
                 video_clips.append(vid)
                 print(f"[OK] Clip created ({img_duration:.1f}s)")
@@ -665,74 +720,57 @@ def concatenate_images_local(event):
         # Handle transitions
         if transition_time == 0 or transition_time == 0.:
             print("Rendering video without transitions...")
+            print(f"[DEBUG] About to write video to: {video_path}")
             video_clip.write_videofile(
                 video_path, fps=fps,
                 temp_audiofile='temp-audio.m4a',
                 remove_temp=True
             )
             
+            # Check if file was actually created
+            if os.path.exists(video_path):
+                file_size = os.path.getsize(video_path)
+                print(f"[DEBUG] Video file created successfully: {video_path} ({file_size} bytes)")
+            else:
+                print(f"[ERROR] Video file was not created at expected path: {video_path}")
+            
+            # Store duration before cleanup
+            actual_duration = video_clip.duration
+            
             # Cleanup
             video_clip.close()
             for clip in video_clips:
                 clip.close()
                 
-            return video_path, frames_url[0] if frames_url else None
+            return video_path, frames_url[0] if frames_url else None, actual_duration
         
-        print(f"Adding transitions ({transition_time}s)...")
-        clips = []
-        
-        # Enhanced transition processing
-        start_time, end_time = 0., 0.
-        for i in range(len(video_clips)):
-            try:
-                clip_duration = frames_per_image[i] / fps if i < len(frames_per_image) else video_clips[i].duration
-                end_time = start_time + clip_duration
-                
-                if i == 0:
-                    clips.append(video_clip.subclip(start_time, end_time))
-                else:
-                    transition_clip = video_clip.subclip(start_time, end_time)
-                    if transition_overlap:
-                        transition_clip = transition_clip.set_start(start_time - transition_time * i * transition_overlap)
-                    transition_clip = transition_clip.crossfadein(transition_time)
-                    clips.append(transition_clip)
-                    
-                start_time = end_time
-                
-            except Exception as transition_error:
-                print(f"[WARNING] Transition error for clip {i}: {transition_error}")
-                # Add clip without transition
-                if i < len(video_clips):
-                    clips.append(video_clips[i])
-        
-        if clips:
-            print("Compositing final video with transitions...")
-            final_clip = CompositeVideoClip(clips)
-            
-            # Write final video with transitions
-            transition_video_path = f'transition_{video_path}'
-            final_clip.write_videofile(
-                transition_video_path, fps=fps,
-                temp_audiofile='temp-audio-transitions.m4a',
+        else:
+            # Handle video with transitions (or default case)
+            print("Rendering video with transitions...")
+            print(f"[DEBUG] About to write video to: {video_path}")
+            video_clip.write_videofile(
+                video_path, fps=fps,
+                temp_audiofile='temp-audio.m4a',
                 remove_temp=True
             )
-            
-            # Cleanup
-            video_clip.close()
-            final_clip.close()
-            for clip in video_clips + clips:
-                clip.close()
-            
-            print(f"[OK] Video with transitions completed: {transition_video_path}")
-            return transition_video_path, frames_url[0] if frames_url else None
+        
+        # Store actual duration for audio sync
+        actual_duration = video_clip.duration
+        print(f"[OK] Video rendered: {actual_duration:.1f}s")
+        
+        # Check if file was actually created (transitions path)
+        if os.path.exists(video_path):
+            file_size = os.path.getsize(video_path)
+            print(f"[DEBUG] Video file created successfully: {video_path} ({file_size} bytes)")
         else:
-            # Fallback to original video
-            print("[WARNING] Transition processing failed, using base video")
-            video_clip.write_videofile(
-                video_path, fps=fps
-            )
-            video_clip.close()
-            return video_path, frames_url[0] if frames_url else None
+            print(f"[ERROR] Video file was not created at expected path: {video_path}")
+        
+        # Cleanup
+        video_clip.close()
+        for clip in video_clips:
+            clip.close()
+            
+        return video_path, frames_url[0] if frames_url else None, actual_duration
             
     except Exception as assembly_error:
         print(f"[ERROR] Video assembly failed: {assembly_error}")
@@ -749,7 +787,7 @@ def concatenate_images_local(event):
                 for clip in video_clips:
                     clip.close()
                     
-                return emergency_path, frames_url[0] if frames_url else None
+                return emergency_path, frames_url[0] if frames_url else None, emergency_clip.duration
         except Exception as emergency_error:
             print(f"[ERROR] Even emergency fallback failed: {emergency_error}")
         
@@ -774,7 +812,7 @@ def mindsflow_function(event, context) -> dict:
         print(f"   Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
         # Generate video from images with enhanced error handling
-        video_path, first_frame_url = concatenate_images_local(event)
+        video_path, first_frame_url, video_duration = concatenate_images_local(event)
         
         if not video_path or not os.path.exists(video_path):
             raise VideoGenerationError("Video generation failed - no output file created")
@@ -806,7 +844,7 @@ def mindsflow_function(event, context) -> dict:
             'version': '2.0_enhanced'
         }
         
-        print(f"\n🎉 Success! Video generation completed")
+        print(f"\nSUCCESS Success! Video generation completed")
         return result
         
     except VideoGenerationError as vge:

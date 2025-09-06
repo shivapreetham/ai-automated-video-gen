@@ -2,7 +2,7 @@
 
 # Text-to-Speech (Free)
 gtts>=2.3.0
-
+imageio-ffmpeg>=0.4.7
 # Image Processing
 Pillow>=9.0.0
 opencv-python
@@ -29,8 +29,8 @@ ffmpeg-python
 # regex
 
 # Subtitle Processing
-# pysrt
-# pysubs2
+pysrt
+pysubs2
 
 # Cloud Storage (Optional - only if using AWS)
 # boto3
@@ -48,10 +48,10 @@ imageio
 imageio-ffmpeg
 
 # For audio format handling
-# soundfile
+soundfile
 
 # Optional: For better audio quality
-# librosa
+librosa
 
 # Development and testing
 pytest

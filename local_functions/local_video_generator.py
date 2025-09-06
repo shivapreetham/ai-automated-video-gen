@@ -10,9 +10,16 @@ from datetime import datetime
 from typing import Dict, Any
 
 # Import our enhanced local functions
-from textToSpeech_elevenlabs import mindsflow_function as generate_speech
-from textGeneration_gemini import generate_video_script
-from PromptImagesToVideo_pollinations import mindsflow_function as generate_video
+try:
+    # Try relative imports first (for package usage)
+    from .textToSpeech_elevenlabs import mindsflow_function as generate_speech
+    from .textGeneration_gemini import generate_video_script
+    from .PromptImagesToVideo_pollinations import mindsflow_function as generate_video
+except ImportError:
+    # Fall back to direct imports (for direct script usage)
+    from textToSpeech_elevenlabs import mindsflow_function as generate_speech
+    from textGeneration_gemini import generate_video_script
+    from PromptImagesToVideo_pollinations import mindsflow_function as generate_video
 
 # Additional imports for enhanced functionality
 import sys
@@ -42,7 +49,7 @@ class LocalVideoGenerator:
         # Create output directory with error handling
         try:
             os.makedirs(self.session_dir, exist_ok=True)
-            print(f"Session created: {self.session_dir}")
+            print(f"[OK] Session created: {self.session_dir}")
         except Exception as e:
             raise LocalVideoGeneratorError(f"Failed to create session directory: {e}")
     
@@ -161,7 +168,7 @@ class LocalVideoGenerator:
             "font_size": max(12, min(72, kwargs.get("font_size", 30))),
             "height": kwargs.get("height", 1024),
             "width": kwargs.get("width", 576),
-            "fps": max(8, min(60, kwargs.get("fps", 24))),  # Increased default fps
+            "fps": max(8, min(60, kwargs.get("fps", 24))),
             "image_model": kwargs.get("image_model", "flux"),
             "transition_time": max(0, min(5, kwargs.get("transition_time", 1.5))),
             "zoom": max(1.0, min(3.0, kwargs.get("zoom", 1.2))),
@@ -299,12 +306,38 @@ class LocalVideoGenerator:
                 os.rename(video_file, session_video)
                 video_result['video_url'] = session_video
                 
+                # Get actual video duration from the generated video
+                from moviepy.video.io.VideoFileClip import VideoFileClip
+                temp_clip = VideoFileClip(session_video)
+                actual_video_duration = temp_clip.duration
+                temp_clip.close()
+                
+                # Get actual audio duration for comparison
+                from moviepy.audio.io.AudioFileClip import AudioFileClip
+                audio_clip_temp = AudioFileClip(session_audio)
+                actual_audio_duration = audio_clip_temp.duration
+                audio_clip_temp.close()
+                
+                print(f"Duration analysis:")
+                print(f"  Script estimated: {script_data.get('total_duration', 0):.1f}s")
+                print(f"  Audio actual: {actual_audio_duration:.1f}s")
+                print(f"  Video actual: {actual_video_duration:.1f}s")
+                
+                # Check if video-audio duration mismatch is significant
+                duration_diff = abs(actual_video_duration - actual_audio_duration)
+                if duration_diff > 2.0:  # More than 2 seconds difference
+                    print(f"WARNING: Large duration mismatch ({duration_diff:.1f}s)")
+                    self.stats['warnings'].append(f"Video-audio duration mismatch: {duration_diff:.1f}s")
+                
                 # Validate video file
                 video_size = os.path.getsize(session_video)
                 if video_size < 10240:  # Less than 10KB suggests failure
                     raise Exception(f"Generated video file is too small ({video_size} bytes)")
                 
                 results.update(video_result)
+                results['actual_video_duration'] = actual_video_duration
+                results['actual_audio_duration'] = actual_audio_duration
+                results['duration_mismatch'] = duration_diff
                 self.stats['images_generated'] = video_result.get('images_generated', 0)
                 print(f"[OK] Enhanced video generated: {session_video} ({video_size/1024/1024:.1f} MB)")
                 
@@ -322,8 +355,14 @@ class LocalVideoGenerator:
                 import moviepy.config as mp_config
                 import imageio_ffmpeg as iio
                 
-                mp_config.IMAGEIO_FFMPEG_EXE = iio.get_ffmpeg_exe()
-                print(f"[OK] FFmpeg configured: {mp_config.IMAGEIO_FFMPEG_EXE}")
+                # Set FFmpeg path globally
+                ffmpeg_exe = iio.get_ffmpeg_exe()
+                mp_config.IMAGEIO_FFMPEG_EXE = ffmpeg_exe
+                
+                # Also set environment variable for extra safety
+                os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_exe
+                
+                print(f"[OK] FFmpeg configured: {ffmpeg_exe}")
                 
                 from moviepy.editor import VideoFileClip, AudioFileClip
                 
@@ -335,9 +374,11 @@ class LocalVideoGenerator:
                 print(f"   Video: {video_clip.duration:.1f}s, {video_clip.size}")
                 print(f"   Audio: {audio_clip.duration:.1f}s")
                 
-                # Store durations for later use
+                # Use actual measured durations
                 video_duration = video_clip.duration
                 audio_duration = audio_clip.duration
+                
+                print(f"Duration check: video={video_duration:.1f}s, audio={audio_duration:.1f}s")
                 
                 # Enhanced synchronization logic
                 if abs(audio_duration - video_duration) > 0.5:  # More than 0.5s difference
@@ -352,29 +393,76 @@ class LocalVideoGenerator:
                 else:
                     print("[OK] Audio and video durations are well matched")
                 
-                # Combine with enhanced settings
+                # Simple duration matching - use the shorter duration for both
+                final_duration = min(audio_duration, video_duration)
+                print(f"Using duration: {final_duration:.1f}s")
+                
+                if audio_duration > final_duration:
+                    print("Trimming audio to match video")
+                    audio_clip = audio_clip.subclip(0, final_duration)
+                    
+                if video_duration > final_duration:
+                    print("Trimming video to match audio")
+                    video_clip = video_clip.subclip(0, final_duration)
+                
+                # Update durations after trimming
+                video_duration = final_duration
+                audio_duration = final_duration
+                
+                # Combine with enhanced settings and proper audio handling
                 print("Combining audio and video...")
-                final_clip = video_clip.set_audio(audio_clip)
+                # Use the correct method for this MoviePy version
+                if hasattr(video_clip, 'set_audio'):
+                    final_clip = video_clip.set_audio(audio_clip)
+                elif hasattr(video_clip, 'with_audio'):
+                    final_clip = video_clip.with_audio(audio_clip)
+                else:
+                    raise Exception("No audio integration method available in MoviePy")
                 
                 # Enhanced export settings
                 final_video = os.path.join(self.session_dir, f"final_enhanced_video_{self.session_id}.mp4")
                 
-                # Quality-based export settings
+                # Quality-based export settings with proper audio handling
                 if params["quality_mode"] == "fast":
-                    codec_settings = {'codec': 'libx264', 'audio_codec': 'aac', 'bitrate': '1000k'}
+                    codec_settings = {
+                        'codec': 'libx264', 
+                        'audio_codec': 'aac',
+                        'bitrate': '1000k',
+                        'audio_bitrate': '128k'
+                    }
                 elif params["quality_mode"] == "quality":
-                    codec_settings = {'codec': 'libx264', 'audio_codec': 'aac', 'bitrate': '3000k'}
+                    codec_settings = {
+                        'codec': 'libx264', 
+                        'audio_codec': 'aac',
+                        'bitrate': '3000k',
+                        'audio_bitrate': '256k'
+                    }
                 else:  # balanced
-                    codec_settings = {'codec': 'libx264', 'audio_codec': 'aac', 'bitrate': '2000k'}
+                    codec_settings = {
+                        'codec': 'libx264', 
+                        'audio_codec': 'aac',
+                        'bitrate': '2000k',
+                        'audio_bitrate': '192k'
+                    }
                 
+                # Write video with optimized settings for speed
+                optimized_fps = max(8, min(params.get('fps', 24), 16))  # Limit FPS for speed
+                print(f"Writing final video (optimized: {optimized_fps}fps)...")
                 final_clip.write_videofile(
                     final_video,
-                    temp_audiofile='temp-audio-final.m4a',
+                    fps=optimized_fps,
+                    temp_audiofile=f'temp-audio-final-{self.session_id}.m4a',
                     remove_temp=True,
-                    **codec_settings
+                    # Optimized settings for speed
+                    codec='libx264',
+                    audio_codec='aac',
+                    bitrate='1000k',  # Lower bitrate for speed
+                    audio_bitrate='128k',
+                    threads=2,
+                    preset='ultrafast'  # Fastest encoding preset
                 )
                 
-                # Cleanup
+                # Cleanup clips to free memory
                 video_clip.close()
                 audio_clip.close()
                 final_clip.close()
@@ -383,6 +471,22 @@ class LocalVideoGenerator:
                 final_size = os.path.getsize(final_video)
                 if final_size < 50000:  # Less than 50KB suggests failure
                     raise Exception(f"Final video file is too small ({final_size} bytes)")
+                
+                # Verify the final video has audio
+                try:
+                    test_clip = VideoFileClip(final_video)
+                    has_audio = test_clip.audio is not None
+                    final_duration = test_clip.duration
+                    test_clip.close()
+                    
+                    if not has_audio:
+                        print("[WARNING] Final video has no audio track")
+                        self.stats['warnings'].append("Final video missing audio track")
+                    else:
+                        print(f"[OK] Final video has audio track ({final_duration:.1f}s)")
+                        
+                except Exception as verify_error:
+                    print(f"[WARNING] Could not verify final video: {verify_error}")
                 
                 print(f"[OK] Enhanced audio-video combination completed")
                 print(f"   Final video: {final_video} ({final_size/1024/1024:.1f} MB)")
@@ -394,11 +498,48 @@ class LocalVideoGenerator:
                 print(f"[DEBUG] Video file: {session_video}")
                 print(f"[DEBUG] Audio exists: {os.path.exists(session_audio) if 'session_audio' in locals() else 'N/A'}")
                 print(f"[DEBUG] Video exists: {os.path.exists(session_video) if 'session_video' in locals() else 'N/A'}")
-                self.stats['warnings'].append(error_msg)
+                self.stats['errors'].append(error_msg)
                 
-                print("[WARNING] Using silent video as fallback")
-                final_video = session_video
-                audio_duration = results.get('duration', script_data.get('total_duration', 0))
+                print("[WARNING] Attempting audio combination fallback...")
+                try:
+                    # Try a simpler audio combination approach
+                    from moviepy.editor import VideoFileClip, AudioFileClip
+                    
+                    video_clip = VideoFileClip(session_video) 
+                    audio_clip = AudioFileClip(session_audio)
+                    
+                    # Simple duration matching
+                    min_duration = min(video_clip.duration, audio_clip.duration)
+                    video_clip = video_clip.subclip(0, min_duration)
+                    audio_clip = audio_clip.subclip(0, min_duration)
+                    
+                    # Simple combination - use correct method
+                    if hasattr(video_clip, 'set_audio'):
+                        final_clip = video_clip.set_audio(audio_clip)
+                    elif hasattr(video_clip, 'with_audio'):
+                        final_clip = video_clip.with_audio(audio_clip)
+                    else:
+                        final_clip = video_clip  # Fallback without audio
+                    final_video = os.path.join(self.session_dir, f"fallback_video_{self.session_id}.mp4")
+                    
+                    final_clip.write_videofile(
+                        final_video,
+                        codec='libx264',
+                        audio_codec='aac'
+                    )
+                    
+                    video_clip.close()
+                    audio_clip.close() 
+                    final_clip.close()
+                    
+                    print(f"[OK] Fallback audio combination successful: {final_video}")
+                    audio_duration = min_duration
+                    
+                except Exception as fallback_error:
+                    print(f"[ERROR] Even fallback audio combination failed: {fallback_error}")
+                    print("[WARNING] Using silent video as final fallback")
+                    final_video = session_video
+                    audio_duration = results.get('duration', script_data.get('total_duration', 0))
             
             # Step 5: Enhanced Results Summary
             processing_time = time.time() - generation_start
