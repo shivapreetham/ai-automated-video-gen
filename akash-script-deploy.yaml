@@ -19,7 +19,7 @@ services:
 
       app = Flask(__name__)
 
-      GEMINI_API_KEY = AIzaSyB2VLzqQbnSy0KloCMlk4IRXD6L9Qwgc8Y
+      GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
       if GEMINI_API_KEY:
           genai.configure(api_key=GEMINI_API_KEY)
@@ -83,6 +83,131 @@ services:
                   \"timestamp\": datetime.now().isoformat()
               }), 500
 
+      @app.route(\"/generate-script\", methods=[\"POST\"])
+      def generate_script():
+          try:
+              data = request.get_json()
+              if not data:
+                  return jsonify({\"error\": \"No JSON data provided\"}), 400
+              
+              topic = data.get(\"topic\")
+              if not topic:
+                  return jsonify({\"error\": \"Topic is required\"}), 400
+              
+              style = data.get(\"style\", \"informative\")
+              num_segments = data.get(\"num_segments\", 5)
+              duration_per_segment = data.get(\"duration_per_segment\", 4.0)
+              
+              script_result = generate_video_script(topic, style, num_segments, duration_per_segment)
+              
+              return jsonify({
+                  \"success\": True,
+                  \"text\": script_result[\"text\"],
+                  \"sentences\": script_result[\"sentences\"],
+                  \"topic\": topic,
+                  \"style\": style,
+                  \"num_segments\": num_segments,
+                  \"generated_by\": \"akash_gemini\",
+                  \"timestamp\": datetime.now().isoformat()
+              })
+              
+          except Exception as e:
+              return jsonify({
+                  \"success\": False,
+                  \"error\": str(e),
+                  \"timestamp\": datetime.now().isoformat()
+              }), 500
+
+      def generate_video_script(topic: str, style: str, num_segments: int, duration_per_segment: float) -> Dict[str, Any]:
+          if not GEMINI_API_KEY:
+              # Fallback response
+              sentences = []
+              text_parts = []
+              
+              for i in range(num_segments):
+                  sentence = f\"This is segment {i+1} about {topic}. We explore important aspects and provide valuable insights.\"
+                  sentences.append({
+                      \"sentence\": sentence,
+                      \"start_time\": i * 40000000,
+                      \"end_time\": (i+1) * 40000000,
+                      \"duration\": 40000000
+                  })
+                  text_parts.append(sentence)
+              
+              return {
+                  \"text\": \" \".join(text_parts),
+                  \"sentences\": sentences
+              }
+          
+          try:
+              model = genai.GenerativeModel(\"gemini-1.5-flash\")
+              
+              prompt = f\"\"\"Create a {style} video script about \"{topic}\" with exactly {num_segments} segments.
+              
+Requirements:
+- Each segment should be 1-2 sentences
+- Target speaking time: {duration_per_segment} seconds per segment
+- Style: {style}
+- Make it engaging and informative
+- Each segment should flow naturally to the next
+
+Format your response as JSON:
+{{
+    \"segments\": [
+        {{\"text\": \"Segment 1 text here\"}},
+        {{\"text\": \"Segment 2 text here\"}},
+        ...
+    ]
+}}\"\"\"
+              
+              response = model.generate_content(prompt)
+              response_text = response.text.strip()
+              
+              if response_text.startswith(\"```json\"):
+                  response_text = response_text[7:]
+              if response_text.endswith(\"```\"):
+                  response_text = response_text[:-3]
+              
+              script_data = json.loads(response_text)
+              
+              sentences = []
+              text_parts = []
+              
+              for i, segment in enumerate(script_data.get(\"segments\", [])):
+                  sentence = segment.get(\"text\", f\"Segment {i+1} about {topic}\")
+                  sentences.append({
+                      \"sentence\": sentence,
+                      \"start_time\": i * int(duration_per_segment * 10000000),
+                      \"end_time\": (i+1) * int(duration_per_segment * 10000000),
+                      \"duration\": int(duration_per_segment * 10000000)
+                  })
+                  text_parts.append(sentence)
+              
+              return {
+                  \"text\": \" \".join(text_parts),
+                  \"sentences\": sentences
+              }
+              
+          except Exception as e:
+              # Fallback on error
+              sentences = []
+              text_parts = []
+              
+              for i in range(num_segments):
+                  sentence = f\"This is segment {i+1} about {topic}. We explore important aspects and provide valuable insights about this fascinating topic.\"
+                  sentences.append({
+                      \"sentence\": sentence,
+                      \"start_time\": i * 40000000,
+                      \"end_time\": (i+1) * 40000000,
+                      \"duration\": 40000000
+                  })
+                  text_parts.append(sentence)
+              
+              return {
+                  \"text\": \" \".join(text_parts),
+                  \"sentences\": sentences
+              }
+
       def generate_simple_story(topic: str, genre: str, length: str, style: str) -> Dict[str, Any]:
           if not GEMINI_API_KEY:
               return {
@@ -127,20 +252,20 @@ services:
               }
 
       if __name__ == \"__main__\":
-          app.run(host=\"0.0.0.0\", port=80, debug=False)
+          app.run(host=\"0.0.0.0\", port=8080, debug=False)
       ' > app.py &&
-      gunicorn --bind 0.0.0.0:80 --workers 2 --timeout 60 app:app
+      gunicorn --bind 0.0.0.0:8080 --workers 2 --timeout 60 app:app
       "
     
     expose:
-      - port: 80
+      - port: 8080
         as: 80
         to:
           - global: true
     
     env:
       # Set your Gemini API key here before deployment
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_API_KEY=AIzaSyB2VLzqQbnSy0KloCMlk4IRXD6L9Qwgc8Y
 
 profiles:
   compute:

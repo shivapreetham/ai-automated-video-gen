@@ -10,9 +10,13 @@ import time
 import requests
 from datetime import datetime
 from typing import Dict, Any, Optional
+from dotenv import load_dotenv
 
 from flask import Flask, request, jsonify, send_file
 from werkzeug.exceptions import BadRequest, NotFound
+
+# Load environment variables
+load_dotenv()
 
 # Import local functions
 from local_functions.local_video_generator import LocalVideoGenerator
@@ -58,7 +62,12 @@ def call_akash_service(endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
 
 @app.route("/", methods=["GET"])
 def home():
-    return send_file("video_generator.html")
+    return jsonify({
+        "message": "AI Video Generator Backend",
+        "version": "2.0",
+        "frontend": "Available at http://localhost:3001 (Next.js)",
+        "api_docs": "/api"
+    })
 
 @app.route("/api", methods=["GET"])
 def api_home():
