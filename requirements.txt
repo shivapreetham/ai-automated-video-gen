@@ -1,0 +1,52 @@
+# AI Video Generator Requirements
+
+# Core AI/ML Libraries
+openai>=1.0.0
+replicate
+
+# Image Processing
+Pillow>=9.0.0
+opencv-python
+numpy
+scipy
+
+# Audio Processing
+pydub
+noisereduce
+azure-cognitiveservices-speech
+
+# Video Processing  
+moviepy
+ffmpeg-python
+
+# Web Framework (for voice clone APIs)
+fastapi
+uvicorn
+python-multipart
+
+# Natural Language Processing
+nltk
+jieba
+regex
+
+# Subtitle Processing
+pysrt
+pysubs2
+
+# AWS SDK
+boto3
+
+# HTTP Requests
+requests
+
+# Utility Libraries
+tqdm
+uuid
+
+# YouTube Upload (install manually if needed: pip install git+https://github.com/tokland/youtube-upload.git)
+# youtube-upload
+
+# Additional dependencies that might be needed
+matplotlib
+imageio
+imageio-ffmpeg
