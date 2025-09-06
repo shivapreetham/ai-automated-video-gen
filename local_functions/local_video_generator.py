@@ -10,8 +10,16 @@ from datetime import datetime
 from typing import Dict, Any
 
 # Import our enhanced local functions
-from textToSpeech_gtts import mindsflow_function as generate_speech
-from PromptImagesToVideo_pollinations import mindsflow_function as generate_video
+try:
+    # Try relative imports first (for package usage)
+    from .textToSpeech_elevenlabs import mindsflow_function as generate_speech
+    from .textGeneration_gemini import generate_video_script
+    from .PromptImagesToVideo_pollinations import mindsflow_function as generate_video
+except ImportError:
+    # Fall back to direct imports (for direct script usage)
+    from textToSpeech_elevenlabs import mindsflow_function as generate_speech
+    from textGeneration_gemini import generate_video_script
+    from PromptImagesToVideo_pollinations import mindsflow_function as generate_video
 
 # Additional imports for enhanced functionality
 import sys
@@ -41,113 +49,102 @@ class LocalVideoGenerator:
         # Create output directory with error handling
         try:
             os.makedirs(self.session_dir, exist_ok=True)
-            print(f"Session created: {self.session_dir}")
+            print(f"[OK] Session created: {self.session_dir}")
         except Exception as e:
             raise LocalVideoGeneratorError(f"Failed to create session directory: {e}")
     
     def generate_enhanced_script(self, topic: str, style: str = None, num_segments: int = 4) -> Dict[str, Any]:
         """
-        Generate dynamic script using Gemini AI instead of hardcoded templates
-        Creates dynamic, topic-specific content for video
+        AI-powered script generation using Gemini
+        Creates dynamic, contextual content for videos
         """
         try:
-            from gemini_story_generator import GeminiStoryGenerator
+            print(f"[AI] Generating AI-powered script with Gemini...")
             
-            print(f"Generating dynamic story for '{topic}' using Gemini AI...")
+            # Use Gemini for intelligent script generation
+            script_data = generate_video_script(
+                topic=topic,
+                style=style or 'informative',
+                num_segments=num_segments,
+                duration_per_segment=4.0
+            )
             
-            # Initialize Gemini generator
-            generator = GeminiStoryGenerator()
-            
-            # Generate story using Gemini
-            style_key = style.lower() if style else 'informative'
-            script_data = generator.generate_story_segments(topic, num_segments, style_key)
-            
-            # Add our local session info
-            script_data['session_id'] = self.session_id
-            script_data['generated_at'] = datetime.now().isoformat()
-            
-            total_duration = script_data['total_duration']
-            segment_count = script_data['segment_count']
-            source = script_data.get('source', 'gemini')
-            
-            print(f"Dynamic script generated: {segment_count} segments, {total_duration:.1f}s total (source: {source})")
-            
-            # Store generation info in stats
-            self.stats['script_source'] = source
-            self.stats['script_duration'] = total_duration
+            print(f"[OK] AI script generated: {script_data['segment_count']} segments, {script_data['total_duration']:.1f}s total")
+            print(f"[OK] Title: {script_data.get('title', 'N/A')}")
             
             return script_data
             
         except Exception as e:
-            print(f"WARNING: Gemini script generation failed: {e}")
-            print("Falling back to basic template generation...")
+            print(f"[WARNING] AI script generation failed: {e}")
+            print(f"[FALLBACK] Using template-based generation...")
             
-            # Fallback to simple template if Gemini fails
-            return self._generate_fallback_script(topic, style, num_segments)
+            # Fallback to template generation
+            return self.generate_fallback_script(topic, style, num_segments)
     
-    def _generate_fallback_script(self, topic: str, style: str = None, num_segments: int = 4) -> Dict[str, Any]:
-        """Fallback script generation when Gemini is not available"""
-        try:
-            # Basic templates for fallback
-            templates = {
-                'informative': [
-                    f"Learn about {topic} and its key concepts.",
-                    f"Discover the important aspects of {topic}.",
-                    f"Understanding {topic} provides valuable insights."
-                ],
-                'educational': [
-                    f"Today we explore {topic} step by step.",  
-                    f"Here are the essential facts about {topic}.",
-                    f"Apply these {topic} concepts effectively."
-                ],
-                'promotional': [
-                    f"Discover the benefits of {topic} today.",
-                    f"See why {topic} matters for you.", 
-                    f"Take action with {topic} now."
-                ]
-            }
+    def generate_fallback_script(self, topic: str, style: str, num_segments: int) -> Dict[str, Any]:
+        """
+        Fallback script generation if AI fails
+        """
+        templates = {
+            'informative': [
+                f"{topic} is a fascinating subject with many important aspects to explore.",
+                f"Understanding the key principles of {topic} provides valuable insights.",
+                f"There are several critical factors that make {topic} significant today.",
+                f"The impact of {topic} extends far beyond what most people realize.",
+                f"These insights about {topic} can help you make better informed decisions."
+            ],
+            'educational': [
+                f"Let's learn about the fundamental concepts of {topic}.",
+                f"The science behind {topic} reveals some interesting discoveries.",
+                f"Researchers have found that {topic} plays a crucial role in many areas.",
+                f"By understanding {topic}, we can better appreciate its applications.",
+                f"This knowledge about {topic} opens up new possibilities for learning."
+            ],
+            'promotional': [
+                f"Discover why {topic} is becoming increasingly important.",
+                f"Here's what experts are saying about the benefits of {topic}.",
+                f"Don't miss out on understanding how {topic} can make a difference.",
+                f"Take advantage of these insights about {topic} to stay ahead.",
+                f"Join thousands who are already benefiting from knowledge about {topic}."
+            ]
+        }
+        
+        style_key = style.lower() if style and style.lower() in templates else 'informative'
+        sentences = templates[style_key][:num_segments]
+        
+        # Create timing data
+        azure_time_unit = 10000000
+        sentence_data = []
+        current_time = 0
+        
+        for i, sentence in enumerate(sentences):
+            words = len(sentence.split())
+            chars = len(sentence)
             
-            style_key = style.lower() if style and style.lower() in templates else 'informative'
-            sentences = templates[style_key][:num_segments]
+            word_duration = (words / 150) * 60 * azure_time_unit
+            buffer_time = min(20000000, max(15000000, chars * 50000))
+            estimated_duration = int(word_duration + buffer_time)
             
-            # Create timing data
-            azure_time_unit = 10000000
-            sentence_data = []
-            current_time = 0
-            
-            for sentence in sentences:
-                words = len(sentence.split())
-                chars = len(sentence)
-                word_duration = (words / 140) * 60 * azure_time_unit
-                buffer_time = 15000000  # 1.5 seconds buffer
-                estimated_duration = int(word_duration + buffer_time)
-                
-                sentence_data.append({
-                    "sentence": sentence,
-                    "start_time": current_time,
-                    "end_time": current_time + estimated_duration,
-                    "duration": estimated_duration,
-                    "word_count": words,
-                    "char_count": chars
-                })
-                current_time += estimated_duration
-            
-            total_duration = current_time / azure_time_unit
-            
-            return {
-                "Text": " ".join(sentences),
-                "sentences": sentence_data,
-                "topic": topic,
-                "style": style_key,
-                "total_duration": total_duration,
-                "segment_count": len(sentences),
-                "generated_at": datetime.now().isoformat(),
-                "source": "fallback_template"
-            }
-            
-        except Exception as e:
-            self.stats['errors'].append(f"Fallback script generation failed: {e}")
-            raise LocalVideoGeneratorError(f"Fallback script generation failed: {e}")
+            sentence_data.append({
+                "sentence": sentence,
+                "start_time": current_time,
+                "end_time": current_time + estimated_duration,
+                "duration": estimated_duration,
+                "word_count": words,
+                "char_count": chars
+            })
+            current_time += estimated_duration
+        
+        return {
+            "Text": " ".join(sentences),
+            "sentences": sentence_data,
+            "topic": topic,
+            "style": style_key,
+            "total_duration": current_time / azure_time_unit,
+            "segment_count": len(sentences),
+            "generated_at": datetime.now().isoformat(),
+            "generated_by": "fallback_template"
+        }
     
     def create_local_json_file(self, data: Dict[str, Any], filename: str) -> str:
         """Create a local JSON file and return its path"""
@@ -169,15 +166,15 @@ class LocalVideoGenerator:
             "language": kwargs.get("language", "en"),
             "voice_speed": max(0.5, min(2.0, kwargs.get("voice_speed", 1.0))),
             "font_size": max(12, min(72, kwargs.get("font_size", 30))),
-            "height": kwargs.get("height", 512),      # Smaller default
-            "width": kwargs.get("width", 512),       # Smaller default
-            "fps": max(8, min(60, kwargs.get("fps", 12))),  # Lower default FPS
+            "height": kwargs.get("height", 1024),
+            "width": kwargs.get("width", 576),
+            "fps": max(8, min(60, kwargs.get("fps", 24))),
             "image_model": kwargs.get("image_model", "flux"),
-            "transition_time": max(0, min(5, kwargs.get("transition_time", 0))),  # No transitions by default
-            "zoom": max(1.0, min(3.0, kwargs.get("zoom", 1.0))),  # No zoom by default
+            "transition_time": max(0, min(5, kwargs.get("transition_time", 1.5))),
+            "zoom": max(1.0, min(3.0, kwargs.get("zoom", 1.2))),
             "image_duration": max(2, min(30, kwargs.get("image_duration", 5))),
             "style": kwargs.get("style", "informative"),
-            "num_segments": max(3, min(10, kwargs.get("num_segments", 3))),  # Fewer segments for speed
+            "num_segments": max(3, min(10, kwargs.get("num_segments", 5))),
             "quality_mode": kwargs.get("quality_mode", "balanced")  # 'fast', 'balanced', 'quality'
         }
         
@@ -196,7 +193,7 @@ class LocalVideoGenerator:
             self.stats['warnings'].append(f"Unknown model '{params['image_model']}', using 'flux'")
             params["image_model"] = "flux"
         
-        print(f"Parameters validated: {params['width']}x{params['height']}, {params['fps']}fps, {params['image_model']}")
+        print(f"[OK] Parameters validated: {params['width']}x{params['height']}, {params['fps']}fps, {params['image_model']}")
         return params
     
     def generate_video(self, topic: str, **kwargs) -> Dict[str, Any]:
@@ -231,15 +228,16 @@ class LocalVideoGenerator:
             script_file = self.create_local_json_file(script_data, "enhanced_script.json")
             results['script_file'] = script_file
             results['script_data'] = script_data
-            print(f"Enhanced script generated: {script_file}")
+            print(f"[OK] Enhanced script generated: {script_file}")
             
-            # Step 2: Enhanced Speech Generation
-            print(f"\nStep 2: Generating speech...")
+            # Step 2: Enhanced Speech Generation with ElevenLabs
+            print(f"\n[AUDIO] Step 2: Generating high-quality speech with ElevenLabs...")
             try:
                 speech_event = {
                     "text": script_data["Text"],
                     "language": params["language"],
-                    "voice_speed": params["voice_speed"]
+                    "voice_speed": params["voice_speed"],
+                    "format": "mp3"  # ElevenLabs native format
                 }
                 speech_result = generate_speech(speech_event, None)
                 
@@ -251,7 +249,9 @@ class LocalVideoGenerator:
                 if not audio_file or not os.path.exists(audio_file):
                     raise Exception("Speech generation did not produce audio file")
                 
-                session_audio = os.path.join(self.session_dir, f"enhanced_narration_{self.session_id}.wav")
+                # Keep original format (MP3 from ElevenLabs) - MoviePy can handle it
+                file_extension = os.path.splitext(audio_file)[1]  # Get original extension
+                session_audio = os.path.join(self.session_dir, f"enhanced_narration_{self.session_id}{file_extension}")
                 os.rename(audio_file, session_audio)
                 speech_result['audio_url'] = session_audio
                 
@@ -261,16 +261,16 @@ class LocalVideoGenerator:
                     raise Exception(f"Generated audio file is too small ({audio_size} bytes)")
                 
                 results.update(speech_result)
-                print(f"Speech generated: {session_audio} ({audio_size/1024:.1f} KB)")
+                print(f"[OK] Speech generated: {session_audio} ({audio_size/1024:.1f} KB)")
                 
             except Exception as speech_error:
                 error_msg = f"Speech generation failed: {speech_error}"
                 self.stats['errors'].append(error_msg)
-                print(f"ERROR: {error_msg}")
+                print(f"[ERROR] {error_msg}")
                 raise LocalVideoGeneratorError(error_msg)
             
             # Step 3: Enhanced Video Generation from Images
-            print(f"\nStep 3: Generating enhanced video from images...")
+            print(f"\n[STYLE] Step 3: Generating enhanced video from images...")
             try:
                 # Create sentences JSON file for image generation
                 sentences_file = self.create_local_json_file(script_data["sentences"], "enhanced_sentences.json")
@@ -302,7 +302,7 @@ class LocalVideoGenerator:
                 if not video_file or not os.path.exists(video_file):
                     raise Exception("Video generation did not produce video file")
                 
-                session_video = os.path.join(self.session_dir, f"video_{self.session_id}.mp4")
+                session_video = os.path.join(self.session_dir, f"enhanced_video_{self.session_id}.mp4")
                 os.rename(video_file, session_video)
                 video_result['video_url'] = session_video
                 
@@ -339,16 +339,16 @@ class LocalVideoGenerator:
                 results['actual_audio_duration'] = actual_audio_duration
                 results['duration_mismatch'] = duration_diff
                 self.stats['images_generated'] = video_result.get('images_generated', 0)
-                print(f"Video generated: {session_video} ({video_size/1024/1024:.1f} MB, {actual_video_duration:.1f}s)")
+                print(f"[OK] Enhanced video generated: {session_video} ({video_size/1024/1024:.1f} MB)")
                 
             except Exception as video_error:
                 error_msg = f"Video generation failed: {video_error}"
                 self.stats['errors'].append(error_msg)
-                print(f"ERROR: {error_msg}")
+                print(f"[ERROR] {error_msg}")
                 raise LocalVideoGeneratorError(error_msg)
             
             # Step 4: Enhanced Audio-Video Combination
-            print(f"\nStep 4: Combining audio and video with enhanced processing...")
+            print(f"\n[VIDEO] Step 4: Combining audio and video with enhanced processing...")
             
             try:
                 # Enhanced MoviePy configuration
@@ -362,10 +362,9 @@ class LocalVideoGenerator:
                 # Also set environment variable for extra safety
                 os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_exe
                 
-                print(f"FFmpeg configured: {ffmpeg_exe}")
+                print(f"[OK] FFmpeg configured: {ffmpeg_exe}")
                 
-                from moviepy.video.io.VideoFileClip import VideoFileClip
-                from moviepy.audio.io.AudioFileClip import AudioFileClip
+                from moviepy.editor import VideoFileClip, AudioFileClip
                 
                 # Load and validate media files
                 print("Loading media files...")
@@ -380,6 +379,19 @@ class LocalVideoGenerator:
                 audio_duration = audio_clip.duration
                 
                 print(f"Duration check: video={video_duration:.1f}s, audio={audio_duration:.1f}s")
+                
+                # Enhanced synchronization logic
+                if abs(audio_duration - video_duration) > 0.5:  # More than 0.5s difference
+                    print(f"[WARNING] Duration mismatch: audio={audio_duration:.1f}s, video={video_duration:.1f}s")
+                    
+                    if audio_duration > video_duration:
+                        print("Trimming audio to match video")
+                        audio_clip = audio_clip.subclip(0, video_duration)
+                    else:
+                        print("Trimming video to match audio")
+                        video_clip = video_clip.subclip(0, audio_duration)
+                else:
+                    print("[OK] Audio and video durations are well matched")
                 
                 # Simple duration matching - use the shorter duration for both
                 final_duration = min(audio_duration, video_duration)
@@ -437,10 +449,8 @@ class LocalVideoGenerator:
                 optimized_fps = max(8, min(params.get('fps', 24), 16))  # Limit FPS for speed
                 print(f"Writing final video (optimized: {optimized_fps}fps)...")
                 final_clip.write_videofile(
-                    final_video, 
+                    final_video,
                     fps=optimized_fps,
-                    verbose=False, 
-                    logger=None,
                     temp_audiofile=f'temp-audio-final-{self.session_id}.m4a',
                     remove_temp=True,
                     # Optimized settings for speed
@@ -470,27 +480,30 @@ class LocalVideoGenerator:
                     test_clip.close()
                     
                     if not has_audio:
-                        print("WARNING Warning: Final video has no audio track")
+                        print("[WARNING] Final video has no audio track")
                         self.stats['warnings'].append("Final video missing audio track")
                     else:
-                        print(f"✓ Final video has audio track ({final_duration:.1f}s)")
+                        print(f"[OK] Final video has audio track ({final_duration:.1f}s)")
                         
                 except Exception as verify_error:
-                    print(f"WARNING Could not verify final video: {verify_error}")
+                    print(f"[WARNING] Could not verify final video: {verify_error}")
                 
-                print(f"✓ Enhanced audio-video combination completed")
+                print(f"[OK] Enhanced audio-video combination completed")
                 print(f"   Final video: {final_video} ({final_size/1024/1024:.1f} MB)")
                 
             except Exception as combine_error:
                 error_msg = f"Audio-video combination failed: {combine_error}"
-                print(f"ERROR: {error_msg}")
+                print(f"[ERROR] {error_msg}")
+                print(f"[DEBUG] Audio file: {session_audio}")
+                print(f"[DEBUG] Video file: {session_video}")
+                print(f"[DEBUG] Audio exists: {os.path.exists(session_audio) if 'session_audio' in locals() else 'N/A'}")
+                print(f"[DEBUG] Video exists: {os.path.exists(session_video) if 'session_video' in locals() else 'N/A'}")
                 self.stats['errors'].append(error_msg)
                 
-                print("WARNING Attempting audio combination fallback...")
+                print("[WARNING] Attempting audio combination fallback...")
                 try:
                     # Try a simpler audio combination approach
-                    from moviepy.video.io.VideoFileClip import VideoFileClip
-                    from moviepy.audio.io.AudioFileClip import AudioFileClip
+                    from moviepy.editor import VideoFileClip, AudioFileClip
                     
                     video_clip = VideoFileClip(session_video) 
                     audio_clip = AudioFileClip(session_audio)
@@ -511,8 +524,6 @@ class LocalVideoGenerator:
                     
                     final_clip.write_videofile(
                         final_video,
-                        verbose=False,
-                        logger=None,
                         codec='libx264',
                         audio_codec='aac'
                     )
@@ -521,12 +532,12 @@ class LocalVideoGenerator:
                     audio_clip.close() 
                     final_clip.close()
                     
-                    print(f"✓ Fallback audio combination successful: {final_video}")
+                    print(f"[OK] Fallback audio combination successful: {final_video}")
                     audio_duration = min_duration
                     
                 except Exception as fallback_error:
-                    print(f"❌ Even fallback audio combination failed: {fallback_error}")
-                    print("WARNING Using silent video as final fallback")
+                    print(f"[ERROR] Even fallback audio combination failed: {fallback_error}")
+                    print("[WARNING] Using silent video as final fallback")
                     final_video = session_video
                     audio_duration = results.get('duration', script_data.get('total_duration', 0))
             
@@ -549,7 +560,7 @@ class LocalVideoGenerator:
             })
             
             # Enhanced completion summary
-            print(f"\n🎉 Enhanced Video Generation Completed Successfully!")
+            print(f"\n[SUCCESS] Enhanced Video Generation Completed Successfully!")
             print(f"   • Session: {self.session_id}")
             print(f"   • Topic: {params['topic']}")
             print(f"   • Duration: {audio_duration:.1f}s")
@@ -567,7 +578,7 @@ class LocalVideoGenerator:
             processing_time = time.time() - generation_start
             error_msg = str(lvge)
             
-            print(f"\nLocal Video Generator Error: {error_msg}")
+            print(f"\n[ERROR] Local Video Generator Error: {error_msg}")
             
             results.update({
                 'success': False,
@@ -650,7 +661,7 @@ Examples:
     
     try:
         # Display startup information
-        print(f"\n🎥 Enhanced Local AI Video Generator v2.0")
+        print(f"\n[DURATION] Enhanced Local AI Video Generator v2.0")
         print(f"   Topic: {args.topic}")
         print(f"   Resolution: {args.width}x{args.height} @ {args.fps}fps")
         print(f"   Model: {args.model} ({args.quality} quality)")
@@ -678,22 +689,22 @@ Examples:
         
         # Enhanced result reporting
         if result['success']:
-            print(f"\n\n✨ SUCCESS! Enhanced video generation completed \u2728")
-            print(f"   📹 Video file: {result['final_video']}")
-            print(f"   📁 Session directory: {result['session_dir']}")
-            print(f"   ⏱️ Processing time: {result['processing_time']:.1f} seconds")
-            print(f"   💾 File size: {result['final_video_size_mb']:.1f} MB")
-            print(f"   🎥 Duration: {result['duration']:.1f} seconds")
+            print(f"\n\n[SUCCESS] SUCCESS! Enhanced video generation completed")
+            print(f"   [VIDEO] Video file: {result['final_video']}")
+            print(f"   [FOLDER] Session directory: {result['session_dir']}")
+            print(f"   [TIME] Processing time: {result['processing_time']:.1f} seconds")
+            print(f"   [SAVE] File size: {result['final_video_size_mb']:.1f} MB")
+            print(f"   [DURATION] Duration: {result['duration']:.1f} seconds")
             
             if args.verbose and result.get('generation_stats'):
                 stats = result['generation_stats']
-                print(f"\n   📈 Generation Statistics:")
+                print(f"\n   [STATS] Generation Statistics:")
                 if stats.get('images_generated'):
                     print(f"      • Images generated: {stats['images_generated']}")
                 if stats.get('warnings'):
                     print(f"      • Warnings: {len(stats['warnings'])}")
         else:
-            print(f"\n\n❌ FAILED: Video generation failed")
+            print(f"\n\n[ERROR] FAILED: Video generation failed")
             print(f"   Error: {result['error']}")
             print(f"   Processing time: {result.get('processing_time', 0):.1f} seconds")
             
@@ -706,7 +717,7 @@ Examples:
         print(f"\n\n⚡ Generation interrupted by user")
         return 1
     except Exception as e:
-        print(f"\n\n💥 Critical error: {e}")
+        print(f"\n\nCritical error: {e}")
         return 1
         
     return 0

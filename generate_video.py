@@ -30,12 +30,12 @@ def main():
     result = generator.generate_video(topic=topic)
     
     if result['success']:
-        print(f"\nSuccess! Video generated:")
+        print(f"\n[SUCCESS] Video generated:")
         print(f"Output folder: {result['session_dir']}")
         print(f"Video file: {result['final_video']}")
         print(f"Duration: {result.get('duration', 'Unknown')} seconds")
     else:
-        print(f"\nFailed: {result.get('error', 'Unknown error')}")
+        print(f"\n[ERROR] Failed: {result.get('error', 'Unknown error')}")
         sys.exit(1)
 
 if __name__ == "__main__":

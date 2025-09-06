@@ -188,7 +188,7 @@ def generate_image_pollinations(prompt: str, width: int=1024, height: int=1024, 
             
             # Enhanced image validation and post-processing
             if validate_and_enhance_image(temp_filename, width, height):
-                print(f"OK High-quality image generated: {temp_filename}")
+                print(f"[OK] High-quality image generated: {temp_filename}")
                 return temp_filename
             else:
                 if os.path.exists(temp_filename):
@@ -196,18 +196,18 @@ def generate_image_pollinations(prompt: str, width: int=1024, height: int=1024, 
                 continue
                 
         except requests.exceptions.Timeout:
-            print(f"WARNING Timeout on attempt {retry + 1}, retrying...")
+            print(f"[WARNING] Timeout on attempt {retry + 1}, retrying...")
         except requests.exceptions.RequestException as e:
-            print(f"WARNING Request error (attempt {retry + 1}): {e}")
+            print(f"[WARNING] Request error (attempt {retry + 1}): {e}")
         except Exception as e:
-            print(f"WARNING Error generating image (attempt {retry + 1}): {e}")
+            print(f"[WARNING] Error generating image (attempt {retry + 1}): {e}")
         
         if retry < retries - 1:
             delay = base_delay * (2 ** retry)  # Exponential backoff
             print(f"Waiting {delay}s before retry...")
             time.sleep(delay)
     
-    print("ERROR All generation attempts failed, creating fallback image")
+    print("[ERROR] All generation attempts failed, creating fallback image")
     return create_fallback_image(prompt, width, height)
 
 def create_fallback_image(prompt: str, width: int, height: int) -> str:
@@ -449,7 +449,7 @@ def concatenate_images_local(event):
     # Enhanced transcript processing with robust error handling
     if transcript_json_url is not None:
         try:
-            print(f"PROCESSING Processing transcript: {transcript_json_url}")
+            print(f"[PROCESSING] Processing transcript: {transcript_json_url}")
             
             # Load transcript data
             if os.path.exists(transcript_json_url):
@@ -511,7 +511,7 @@ def concatenate_images_local(event):
                     frames_per_image.append(duration * fps)
                     
                 except Exception as segment_error:
-                    print(f"WARNING Error processing segment {i}: {segment_error}")
+                    print(f"[WARNING] Error processing segment {i}: {segment_error}")
                     # Use fallback values for this segment
                     duration = 3.0
                     durations.append(duration)
@@ -520,16 +520,16 @@ def concatenate_images_local(event):
                     frames_per_image.append(duration * fps)
             
             number_of_images = len(frames_per_image)
-            print(f"OK Processed transcript: {number_of_images} segments")
+            print(f"[OK] Processed transcript: {number_of_images} segments")
             
         except Exception as e:
-            print(f"ERROR Error processing transcript: {e}")
+            print(f"[ERROR] Error processing transcript: {e}")
             print("Falling back to duration-based generation...")
             transcript_json_url = None
     
     if transcript_json_url is None:
         try:
-            print(f"VIDEO Using duration-based generation: {video_duration}s video")
+            print(f"[VIDEO] Using duration-based generation: {video_duration}s video")
             
             # Calculate optimal number of images
             video_duration = math.ceil(video_duration)
@@ -575,7 +575,7 @@ def concatenate_images_local(event):
                 for i in range(1, number_of_images):
                     frames_per_image[i] += overlap_frames
             
-            print(f"OK Generated {number_of_images} varied prompts")
+            print(f"[OK] Generated {number_of_images} varied prompts")
             
         except Exception as e:
             raise VideoGenerationError(f"Duration-based generation setup failed: {e}")
@@ -584,7 +584,7 @@ def concatenate_images_local(event):
     total_frames = sum(frames_per_image)
     estimated_duration = total_frames / fps
     
-    print(f"\nGeneration Summary:")
+    print(f"\n[DATA] Generation Summary:")
     print(f"   • Images to generate: {number_of_images}")
     print(f"   • Total frames: {total_frames}")
     print(f"   • Estimated duration: {estimated_duration:.1f}s")
@@ -596,14 +596,14 @@ def concatenate_images_local(event):
         print(f"   • Sample prompt: {img_prompts[0][:80]}...")
     
     # Initialize tracking variables
-    video_path = f'enhanced_video_{uuid.uuid4().hex[:8]}.mp4'
+    video_path = os.path.abspath(f'enhanced_video_{uuid.uuid4().hex[:8]}.mp4')
     frames_url = []
     video_clips = []
     successful_generations = 0
     failed_generations = 0
     
     # Enhanced image generation loop with comprehensive error handling
-    print(f"\nGENERATING Starting image generation...")
+    print(f"\n[STYLE] Starting image generation...")
     
     for i in range(number_of_images):
         try:
@@ -627,7 +627,7 @@ def concatenate_images_local(event):
                 successful_generations += 1
                 
             except Exception as gen_error:
-                print(f"ERROR Image generation failed: {gen_error}")
+                print(f"[ERROR] Image generation failed: {gen_error}")
                 failed_generations += 1
                 
                 # Create fallback image
@@ -644,7 +644,7 @@ def concatenate_images_local(event):
                     crop_image(img_path, width, height)
                     
             except Exception as process_error:
-                print(f"WARNING Image processing failed: {process_error}")
+                print(f"[WARNING] Image processing failed: {process_error}")
                 # Continue with original image
             
             # Store first frame URL for thumbnail
@@ -668,25 +668,25 @@ def concatenate_images_local(event):
                     vid = vid.resize(screensize)
                 
                 video_clips.append(vid)
-                print(f"OK Clip created ({img_duration:.1f}s)")
+                print(f"[OK] Clip created ({img_duration:.1f}s)")
                 
             except Exception as clip_error:
-                print(f"ERROR Clip creation failed: {clip_error}")
+                print(f"[ERROR] Clip creation failed: {clip_error}")
                 # Create a simple colored clip as fallback
                 from moviepy.editor import ColorClip
                 fallback_clip = ColorClip(size=screensize, color=(50, 50, 50), duration=img_duration)
                 video_clips.append(fallback_clip)
-                print("OK Fallback clip created")
+                print("[OK] Fallback clip created")
             
             # Clean up image file
             try:
                 if os.path.exists(img_path) and i > 0:  # Keep first image for thumbnail
                     os.remove(img_path)
             except Exception as cleanup_error:
-                print(f"WARNING Cleanup warning: {cleanup_error}")
+                print(f"[WARNING] Cleanup warning: {cleanup_error}")
                 
         except Exception as loop_error:
-            print(f"ERROR Critical error in generation loop: {loop_error}")
+            print(f"[ERROR] Critical error in generation loop: {loop_error}")
             failed_generations += 1
             
             # Create minimal fallback clip
@@ -695,13 +695,13 @@ def concatenate_images_local(event):
                 from moviepy.editor import ColorClip
                 fallback_clip = ColorClip(size=(width, height), color=(100, 100, 100), duration=fallback_duration)
                 video_clips.append(fallback_clip)
-                print("OK Emergency fallback clip created")
+                print("[OK] Emergency fallback clip created")
             except Exception as fallback_error:
-                print(f"ERROR Even fallback failed: {fallback_error}")
+                print(f"[ERROR] Even fallback failed: {fallback_error}")
                 # Continue to next iteration
     
     # Generation summary
-    print(f"\nGeneration Complete:")
+    print(f"\n[STATS] Generation Complete:")
     print(f"   • Successful: {successful_generations}/{number_of_images}")
     print(f"   • Failed: {failed_generations}/{number_of_images}")
     print(f"   • Video clips created: {len(video_clips)}")
@@ -711,30 +711,59 @@ def concatenate_images_local(event):
 
     # Enhanced video assembly with robust error handling
     try:
-        print(f"\nVIDEO Assembling video...")
+        print(f"\n[MOVIE] Assembling video...")
         
         # Concatenate video clips
         video_clip = concatenate_videoclips(video_clips)
-        print(f"OK Base video assembled ({video_clip.duration:.1f}s)")
+        print(f"[OK] Base video assembled ({video_clip.duration:.1f}s)")
         
-        # Simple, fast video rendering - no transitions
-        print("Rendering video with optimized settings...")
-        video_clip.write_videofile(
-            video_path, 
-            fps=max(8, min(fps, 16)),  # Limit FPS to 8-16 for speed
-            verbose=False, 
-            logger=None,
-            temp_audiofile='temp-audio.m4a',
-            remove_temp=True,
-            # Optimize for speed
-            codec='libx264',
-            bitrate='800k',  # Lower bitrate for faster encoding
-            threads=2  # Use 2 threads for faster encoding
-        )
+        # Handle transitions
+        if transition_time == 0 or transition_time == 0.:
+            print("Rendering video without transitions...")
+            print(f"[DEBUG] About to write video to: {video_path}")
+            video_clip.write_videofile(
+                video_path, fps=fps,
+                temp_audiofile='temp-audio.m4a',
+                remove_temp=True
+            )
+            
+            # Check if file was actually created
+            if os.path.exists(video_path):
+                file_size = os.path.getsize(video_path)
+                print(f"[DEBUG] Video file created successfully: {video_path} ({file_size} bytes)")
+            else:
+                print(f"[ERROR] Video file was not created at expected path: {video_path}")
+            
+            # Store duration before cleanup
+            actual_duration = video_clip.duration
+            
+            # Cleanup
+            video_clip.close()
+            for clip in video_clips:
+                clip.close()
+                
+            return video_path, frames_url[0] if frames_url else None, actual_duration
+        
+        else:
+            # Handle video with transitions (or default case)
+            print("Rendering video with transitions...")
+            print(f"[DEBUG] About to write video to: {video_path}")
+            video_clip.write_videofile(
+                video_path, fps=fps,
+                temp_audiofile='temp-audio.m4a',
+                remove_temp=True
+            )
         
         # Store actual duration for audio sync
         actual_duration = video_clip.duration
-        print(f"Video rendered: {actual_duration:.1f}s")
+        print(f"[OK] Video rendered: {actual_duration:.1f}s")
+        
+        # Check if file was actually created (transitions path)
+        if os.path.exists(video_path):
+            file_size = os.path.getsize(video_path)
+            print(f"[DEBUG] Video file created successfully: {video_path} ({file_size} bytes)")
+        else:
+            print(f"[ERROR] Video file was not created at expected path: {video_path}")
         
         # Cleanup
         video_clip.close()
@@ -744,7 +773,7 @@ def concatenate_images_local(event):
         return video_path, frames_url[0] if frames_url else None, actual_duration
             
     except Exception as assembly_error:
-        print(f"ERROR Video assembly failed: {assembly_error}")
+        print(f"[ERROR] Video assembly failed: {assembly_error}")
         
         # Emergency fallback: create simple video from first working clip
         try:
@@ -752,7 +781,7 @@ def concatenate_images_local(event):
                 print("Creating emergency fallback video...")
                 emergency_clip = video_clips[0]
                 emergency_path = f'emergency_{video_path}'
-                emergency_clip.write_videofile(emergency_path, fps=fps, verbose=False, logger=None)
+                emergency_clip.write_videofile(emergency_path, fps=fps)
                 
                 # Cleanup
                 for clip in video_clips:
@@ -760,7 +789,7 @@ def concatenate_images_local(event):
                     
                 return emergency_path, frames_url[0] if frames_url else None, emergency_clip.duration
         except Exception as emergency_error:
-            print(f"ERROR Even emergency fallback failed: {emergency_error}")
+            print(f"[ERROR] Even emergency fallback failed: {emergency_error}")
         
         # Final cleanup
         try:
@@ -779,7 +808,7 @@ def mindsflow_function(event, context) -> dict:
     start_time = time.time()
     
     try:
-        print(f"\nStarting Enhanced Local Video Generation")
+        print(f"\n[START] Starting Enhanced Local Video Generation")
         print(f"   Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         
         # Generate video from images with enhanced error handling
@@ -794,14 +823,14 @@ def mindsflow_function(event, context) -> dict:
             if file_size < 1024:  # Less than 1KB suggests failure
                 raise VideoGenerationError(f"Generated video file is too small ({file_size} bytes)")
             
-            print(f"OK Video file created: {video_path} ({file_size/1024/1024:.1f} MB)")
+            print(f"[OK] Video file created: {video_path} ({file_size/1024/1024:.1f} MB)")
             
         except Exception as verify_error:
-            print(f"WARNING Video verification failed: {verify_error}")
+            print(f"[WARNING] Video verification failed: {verify_error}")
         
         # Calculate processing time
         processing_time = time.time() - start_time
-        print(f"OK Generation completed in {processing_time:.1f} seconds")
+        print(f"[OK] Generation completed in {processing_time:.1f} seconds")
         
         # Return comprehensive result
         result = {
@@ -820,7 +849,7 @@ def mindsflow_function(event, context) -> dict:
         
     except VideoGenerationError as vge:
         error_msg = f"Video generation error: {vge}"
-        print(f"ERROR: {error_msg}")
+        print(f"[ERROR] {error_msg}")
         
         return {
             'success': False,
@@ -832,7 +861,7 @@ def mindsflow_function(event, context) -> dict:
         
     except Exception as e:
         error_msg = f"Unexpected error during video generation: {e}"
-        print(f"CRITICAL ERROR: {error_msg}")
+        print(f"[ERROR] {error_msg}")
         
         return {
             'success': False,
