@@ -54,6 +54,9 @@ def generate_images(segments: List[Dict], width: int = 1024, height: int = 576, 
                     "segment": segment_num,
                     "image_file": image_file,
                     "prompt": prompt,
+                    "text": segment.get("text", ""),
+                    "caption_text": segment.get("caption_text", ""),
+                    "focus": segment.get("focus", ""),
                     "success": True
                 })
                 print(f"[IMAGE {segment_num}] Generated: {os.path.basename(image_file)}")
@@ -70,6 +73,9 @@ def generate_images(segments: List[Dict], width: int = 1024, height: int = 576, 
                 "segment": segment_num,
                 "image_file": fallback_file,
                 "prompt": prompt,
+                "text": segment.get("text", ""),
+                "caption_text": segment.get("caption_text", ""),
+                "focus": segment.get("focus", ""),
                 "success": False,
                 "error": str(e)
             })

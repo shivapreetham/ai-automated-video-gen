@@ -22,10 +22,11 @@ except ImportError:
     print("[VIDEO] MoviePy not available, using FFmpeg only")
 
 def create_video_with_audio(images: List[Dict], audio_file: str, output_dir: str, 
-                           width: int = 1024, height: int = 576, fps: int = 24) -> Dict[str, Any]:
+                           width: int = 1024, height: int = 576, fps: int = 24, 
+                           add_captions: bool = True) -> Dict[str, Any]:
     """
     Create video from multiple images and audio using MoviePy (preferred) or FFmpeg fallback
-    Enhanced version ported from local_functions
+    Enhanced version with caption support
     """
     
     print(f"[VIDEO] Creating video from {len(images)} images + audio...")
@@ -45,9 +46,16 @@ def create_video_with_audio(images: List[Dict], audio_file: str, output_dir: str
         
         # Try MoviePy first (better quality)
         if MOVIEPY_AVAILABLE:
-            return create_video_with_moviepy(images, audio_file, video_path, audio_duration, duration_per_image, width, height, fps)
+            result = create_video_with_moviepy(images, audio_file, video_path, audio_duration, duration_per_image, width, height, fps)
         else:
-            return create_video_with_ffmpeg(images, audio_file, video_path, audio_duration, duration_per_image, width, height, fps)
+            result = create_video_with_ffmpeg(images, audio_file, video_path, audio_duration, duration_per_image, width, height, fps)
+        
+        # Add captions if requested and video creation was successful
+        if add_captions and result.get("success") and has_caption_data(images):
+            print(f"[VIDEO] Adding captions to video...")
+            result = add_captions_to_video(result, images, output_dir, width, height)
+        
+        return result
     
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -56,13 +64,25 @@ def create_video_with_moviepy(images: List[Dict], audio_file: str, video_path: s
                              audio_duration: float, duration_per_image: float, 
                              width: int, height: int, fps: int) -> Dict[str, Any]:
     """
-    Create video using MoviePy - ported from local_functions advanced logic
+    Create video using MoviePy with transitions - enhanced for better visual flow
     """
     try:
-        print(f"[VIDEO] Using MoviePy for high-quality video creation...")
+        print(f"[VIDEO] Using MoviePy for high-quality video creation with transitions...")
         
-        # Create video clips from images
+        # Import additional MoviePy modules for transitions
+        try:
+            from moviepy.video.fx import fadeout, fadein, crossfadein, crossfadeout
+            from moviepy.video.compositing.transitions import crossfadein as crossfade_transition
+            TRANSITIONS_AVAILABLE = True
+            print("[VIDEO] Transition effects available")
+        except ImportError:
+            TRANSITIONS_AVAILABLE = False
+            print("[VIDEO] Advanced transitions not available, using basic concatenation")
+        
+        # Create video clips from images with transitions
         clips = []
+        transition_duration = min(0.5, duration_per_image * 0.2)  # 20% of segment duration, max 0.5s
+        
         for i, image_data in enumerate(images):
             image_file = image_data['image_file']
             
@@ -79,6 +99,18 @@ def create_video_with_moviepy(images: List[Dict], audio_file: str, video_path: s
                 # Resize to match target dimensions
                 clip = clip.resize((width, height))
                 
+                # Add transitions if available
+                if TRANSITIONS_AVAILABLE and len(images) > 1:
+                    if i == 0:
+                        # First clip: fade in from black
+                        clip = clip.fadein(transition_duration)
+                    elif i == len(images) - 1:
+                        # Last clip: fade out to black
+                        clip = clip.fadeout(transition_duration)
+                    else:
+                        # Middle clips: crossfade transitions
+                        clip = clip.fadein(transition_duration).fadeout(transition_duration)
+                
                 clips.append(clip)
                 
             except Exception as clip_error:
@@ -88,9 +120,30 @@ def create_video_with_moviepy(images: List[Dict], audio_file: str, video_path: s
         if not clips:
             raise Exception("No valid images could be processed into clips")
         
-        # Concatenate all image clips
-        print(f"[VIDEO] Concatenating {len(clips)} clips...")
-        video_clip = concatenate_videoclips(clips, method="compose")
+        # Concatenate clips with crossfade transitions if available
+        if TRANSITIONS_AVAILABLE and len(clips) > 1:
+            print(f"[VIDEO] Creating video with smooth crossfade transitions...")
+            
+            # Adjust clip durations to account for overlaps
+            adjusted_clips = []
+            for i, clip in enumerate(clips):
+                if i == 0:
+                    # First clip: no overlap at start
+                    adjusted_clips.append(clip)
+                elif i == len(clips) - 1:
+                    # Last clip: start earlier to create overlap
+                    adjusted_clips.append(clip.set_start((i * duration_per_image) - transition_duration))
+                else:
+                    # Middle clips: both start earlier and end later for smooth transitions
+                    adjusted_clips.append(clip.set_start((i * duration_per_image) - transition_duration))
+            
+            # Use CompositeVideoClip for overlapping transitions
+            from moviepy.editor import CompositeVideoClip
+            video_clip = CompositeVideoClip(adjusted_clips, size=(width, height))
+            
+        else:
+            print(f"[VIDEO] Concatenating {len(clips)} clips...")
+            video_clip = concatenate_videoclips(clips, method="compose")
         
         # Ensure video matches audio duration
         if video_clip.duration > audio_duration:
@@ -154,10 +207,163 @@ def create_video_with_ffmpeg(images: List[Dict], audio_file: str, video_path: st
                            audio_duration: float, duration_per_image: float, 
                            width: int, height: int, fps: int) -> Dict[str, Any]:
     """
-    Fallback video creation using FFmpeg only
+    Enhanced video creation using FFmpeg with basic transitions
     """
     try:
-        print(f"[VIDEO] Using FFmpeg for video creation...")
+        print(f"[VIDEO] Using FFmpeg for video creation with crossfade transitions...")
+        output_dir = os.path.dirname(video_path)
+        
+        # Create individual video clips with crossfade transitions
+        temp_clips = []
+        transition_duration = min(0.5, duration_per_image * 0.2)  # 20% of segment duration, max 0.5s
+        
+        # First, create individual video clips from each image
+        for i, image_data in enumerate(images):
+            image_file = image_data['image_file']
+            clip_path = os.path.join(output_dir, f"temp_clip_{i}.mp4")
+            
+            # Create a short video from the image
+            cmd_clip = [
+                'ffmpeg', '-y',
+                '-loop', '1',
+                '-i', image_file,
+                '-vf', f'scale={width}:{height}:force_original_aspect_ratio=decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2,fps={fps}',
+                '-c:v', 'libx264',
+                '-t', str(duration_per_image),
+                '-pix_fmt', 'yuv420p',
+                clip_path
+            ]
+            
+            result = subprocess.run(cmd_clip, capture_output=True, text=True, timeout=60)
+            if result.returncode == 0:
+                temp_clips.append(clip_path)
+            else:
+                print(f"[WARNING] Failed to create clip for image {i+1}: {result.stderr}")
+        
+        if not temp_clips:
+            raise Exception("No video clips could be created from images")
+        
+        # Now combine clips with crossfade transitions
+        if len(temp_clips) > 1:
+            print(f"[VIDEO] Combining {len(temp_clips)} clips with crossfade transitions...")
+            
+            # Build complex filter for crossfade transitions
+            filter_complex = ""
+            video_inputs = []
+            
+            for i, clip in enumerate(temp_clips):
+                video_inputs.extend(['-i', clip])
+            
+            # Build crossfade filter chain
+            if len(temp_clips) == 2:
+                filter_complex = f"[0:v][1:v]xfade=transition=fade:duration={transition_duration}:offset={duration_per_image-transition_duration}[v]"
+            else:
+                # Multiple clips - chain crossfades
+                filter_parts = []
+                for i in range(len(temp_clips) - 1):
+                    if i == 0:
+                        filter_parts.append(f"[{i}:v][{i+1}:v]xfade=transition=fade:duration={transition_duration}:offset={duration_per_image-transition_duration}[v{i+1}]")
+                    else:
+                        filter_parts.append(f"[v{i}][{i+1}:v]xfade=transition=fade:duration={transition_duration}:offset={(i+1)*duration_per_image-transition_duration}[v{i+1}]")
+                filter_complex = ";".join(filter_parts)
+            
+            # FFmpeg command with crossfade
+            cmd_video = [
+                'ffmpeg', '-y'
+            ] + video_inputs + [
+                '-filter_complex', filter_complex,
+                '-map', f'[v{len(temp_clips)-1}]' if len(temp_clips) > 2 else '[v]',
+                '-c:v', 'libx264',
+                '-pix_fmt', 'yuv420p',
+                '-t', str(audio_duration),
+                video_path
+            ]
+        else:
+            # Single clip - just copy
+            cmd_video = [
+                'ffmpeg', '-y',
+                '-i', temp_clips[0],
+                '-c:v', 'libx264',
+                '-t', str(audio_duration),
+                video_path
+            ]
+        
+        print(f"[VIDEO] Running FFmpeg video creation with transitions...")
+        result = subprocess.run(cmd_video, capture_output=True, text=True, timeout=300)
+        
+        if result.returncode != 0:
+            print(f"[WARNING] Crossfade failed, falling back to simple concatenation: {result.stderr}")
+            # Fallback to simple concatenation
+            return create_video_with_ffmpeg_simple(images, audio_file, video_path, audio_duration, duration_per_image, width, height, fps)
+        
+        # Clean up temporary clips
+        for clip in temp_clips:
+            try:
+                os.remove(clip)
+            except:
+                pass
+        
+        print(f"[VIDEO] Created video with transitions: {os.path.basename(video_path)}")
+        
+        # Now combine video with audio - use the original video_path as final path
+        temp_video_path = video_path.replace('.mp4', '_temp.mp4')
+        os.rename(video_path, temp_video_path)
+        
+        cmd_final = [
+            'ffmpeg', '-y',
+            '-i', temp_video_path,
+            '-i', audio_file,
+            '-c:v', 'copy',  # Don't re-encode video
+            '-c:a', 'aac',   # Encode audio as AAC
+            '-shortest',     # Match shortest stream (should be same duration)
+            video_path  # Use original path as final output
+        ]
+        
+        print(f"[VIDEO] Combining video with audio...")
+        result = subprocess.run(cmd_final, capture_output=True, text=True, timeout=300)
+        
+        if result.returncode != 0:
+            raise Exception(f"FFmpeg audio combination failed: {result.stderr}")
+        
+        print(f"[VIDEO] Final video created: {os.path.basename(video_path)}")
+        
+        # Clean up temporary files
+        try:
+            os.remove(file_list_path)
+            os.remove(temp_video_path)  # Remove intermediate video
+        except:
+            pass
+        
+        # Get final file info
+        file_size = os.path.getsize(video_path)
+        final_duration = get_video_duration(video_path)
+        
+        return {
+            "success": True,
+            "video_file": video_path,
+            "duration": final_duration,
+            "file_size": file_size,
+            "width": width,
+            "height": height,
+            "fps": fps,
+            "images_used": len(images),
+            "audio_attached": True,
+            "method": "ffmpeg"
+        }
+        
+    except subprocess.TimeoutExpired:
+        return {"success": False, "error": "FFmpeg operation timed out"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def create_video_with_ffmpeg_simple(images: List[Dict], audio_file: str, video_path: str, 
+                                   audio_duration: float, duration_per_image: float, 
+                                   width: int, height: int, fps: int) -> Dict[str, Any]:
+    """
+    Simple video creation using FFmpeg without transitions - fallback method
+    """
+    try:
+        print(f"[VIDEO] Using simple FFmpeg concatenation (fallback)...")
         output_dir = os.path.dirname(video_path)
         
         # Create temporary file list for FFmpeg
@@ -190,7 +396,7 @@ def create_video_with_ffmpeg(images: List[Dict], audio_file: str, video_path: st
             video_path
         ]
         
-        print(f"[VIDEO] Running FFmpeg video creation...")
+        print(f"[VIDEO] Running simple FFmpeg video creation...")
         result = subprocess.run(cmd_video, capture_output=True, text=True, timeout=300)
         
         if result.returncode != 0:
@@ -241,7 +447,7 @@ def create_video_with_ffmpeg(images: List[Dict], audio_file: str, video_path: st
             "fps": fps,
             "images_used": len(images),
             "audio_attached": True,
-            "method": "ffmpeg"
+            "method": "ffmpeg_simple"
         }
         
     except subprocess.TimeoutExpired:
@@ -311,6 +517,94 @@ def check_ffmpeg_available() -> bool:
         print(f"[FFMPEG] System FFmpeg not available: {e}")
     
     return False
+
+def has_caption_data(images: List[Dict]) -> bool:
+    """Check if any images have caption text data"""
+    for image_data in images:
+        if image_data.get("caption_text") or image_data.get("text"):
+            return True
+    return False
+
+def add_captions_to_video(video_result: Dict[str, Any], images: List[Dict], 
+                         output_dir: str, width: int, height: int) -> Dict[str, Any]:
+    """
+    Add captions to existing video using FFmpeg
+    """
+    try:
+        if not video_result.get("success") or not video_result.get("video_file"):
+            return video_result
+        
+        original_video = video_result["video_file"]
+        captioned_video = original_video.replace(".mp4", "_with_captions.mp4")
+        
+        # Create subtitle file (SRT format)
+        srt_file = os.path.join(output_dir, "captions.srt")
+        duration_per_segment = video_result.get("duration", 0) / len(images) if images else 0
+        
+        with open(srt_file, 'w', encoding='utf-8') as f:
+            for i, image_data in enumerate(images):
+                caption_text = image_data.get("caption_text") or image_data.get("text", "")
+                if not caption_text:
+                    continue
+                
+                # Calculate timing
+                start_time = i * duration_per_segment
+                end_time = (i + 1) * duration_per_segment
+                
+                # Format SRT timing
+                start_srt = format_srt_time(start_time)
+                end_srt = format_srt_time(end_time)
+                
+                f.write(f"{i + 1}\n")
+                f.write(f"{start_srt} --> {end_srt}\n")
+                f.write(f"{caption_text}\n\n")
+        
+        # FFmpeg command to burn subtitles into video
+        cmd_captions = [
+            'ffmpeg', '-y',
+            '-i', original_video,
+            '-vf', f"subtitles={srt_file}:force_style='FontSize=24,PrimaryColour=&Hffffff,BackColour=&H80000000,Bold=1,Alignment=2'",
+            '-c:a', 'copy',  # Copy audio without re-encoding
+            captioned_video
+        ]
+        
+        print(f"[CAPTIONS] Adding captions to video...")
+        result = subprocess.run(cmd_captions, capture_output=True, text=True, timeout=300)
+        
+        if result.returncode != 0:
+            print(f"[WARNING] Caption overlay failed: {result.stderr}")
+            return video_result  # Return original video if caption fails
+        
+        # Update result to point to captioned video
+        captioned_size = os.path.getsize(captioned_video)
+        video_result.update({
+            "video_file": captioned_video,
+            "file_size": captioned_size,
+            "captions_added": True,
+            "subtitle_file": srt_file
+        })
+        
+        print(f"[CAPTIONS] Successfully added captions to video")
+        
+        # Optionally remove original video to save space
+        try:
+            os.remove(original_video)
+        except:
+            pass
+        
+        return video_result
+        
+    except Exception as e:
+        print(f"[ERROR] Caption generation failed: {e}")
+        return video_result  # Return original video if caption fails
+
+def format_srt_time(seconds: float) -> str:
+    """Convert seconds to SRT time format (HH:MM:SS,mmm)"""
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    millis = int((seconds % 1) * 1000)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
 
 if __name__ == "__main__":
     # Test FFmpeg availability
