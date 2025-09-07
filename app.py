@@ -333,29 +333,57 @@ def generate_script_local(data: Dict[str, Any]) -> Dict[str, Any]:
     """Generate script locally using Gemini"""
     
     try:
-        from old_functions.textGeneration_gemini import generate_video_script
+        # Use backend_functions script generation
+        print("[SCRIPT] Using backend_functions story script generator...")
         
-        # Ensure proper type conversion with error handling
-        try:
-            num_segments = int(data.get("num_segments", 5))
-            duration_per_segment = float(data.get("duration_per_segment", 4.0))
-        except (ValueError, TypeError) as e:
-            print(f"[ERROR] Type conversion error: {e}")
-            num_segments = 5
-            duration_per_segment = 4.0
+        # Extract parameters
+        topic = data["topic"]
+        style = data.get("style", "informative")
         
-        script_data = generate_video_script(
-            topic=data["topic"],
-            style=data.get("style", "informative"),
-            num_segments=num_segments,
-            duration_per_segment=duration_per_segment
+        # Map legacy parameters to new system
+        if style in ["informative", "educational"]:
+            script_length = "medium"
+        elif style in ["short", "brief"]:
+            script_length = "short" 
+        else:
+            script_length = "long"
+        
+        # Generate script using backend_functions
+        script_result = generate_story_script(
+            topic=topic,
+            script_length=script_length
         )
+        
+        if not script_result.get("success"):
+            raise Exception(f"Script generation failed: {script_result.get('error', 'Unknown error')}")
+        
+        script_info = script_result.get("script_info", {})
+        segments = script_result.get("segments", [])
+        
+        # Convert to legacy format
+        sentences = []
+        text_parts = []
+        
+        for i, segment in enumerate(segments):
+            sentence = segment.get("text", f"Segment {i+1} about {topic}")
+            duration_seconds = segment.get("duration_seconds", 4.0)
+            
+            sentences.append({
+                "sentence": sentence,
+                "start_time": i * 40000000,  # Legacy Azure time units
+                "end_time": (i+1) * 40000000,
+                "duration": 40000000,
+                "segment_number": i + 1
+            })
+            text_parts.append(sentence)
         
         return {
             "success": True,
-            "text": script_data["Text"],
-            "sentences": script_data["sentences"],
-            "generated_by": "local_gemini"
+            "text": " ".join(text_parts),
+            "sentences": sentences,
+            "generated_by": "backend_functions_script_generator",
+            "title": script_info.get("title", topic),
+            "summary": script_info.get("summary", "")
         }
         
     except Exception as e:
