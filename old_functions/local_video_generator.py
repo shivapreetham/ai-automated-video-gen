@@ -153,6 +153,185 @@ class LocalVideoGenerator:
             json.dump(data, f, indent=2, ensure_ascii=False)
         return filepath
     
+    def generate_enhanced_script_with_content(self, topic: str, style: str = None, num_segments: int = 4, source_content: str = None, humor_type: str = None) -> Dict[str, Any]:
+        """
+        AI-powered script generation using Gemini with satirical content support
+        Creates dynamic, contextual content for videos based on source material
+        """
+        try:
+            print(f"[AI] Generating AI-powered script with Gemini using satirical content...")
+            
+            # Use Gemini for intelligent script generation with source content
+            script_data = generate_video_script(
+                topic=topic,
+                style=style or 'entertaining',
+                num_segments=num_segments,
+                duration_per_segment=4.0,
+                source_content=source_content,
+                humor_type=humor_type
+            )
+            
+            print(f"[OK] AI script with satirical content generated: {script_data['segment_count']} segments, {script_data['total_duration']:.1f}s total")
+            print(f"[OK] Title: {script_data.get('title', 'N/A')}")
+            
+            return script_data
+            
+        except Exception as e:
+            print(f"[WARNING] AI script generation with content failed: {e}")
+            print(f"[FALLBACK] Using template-based generation...")
+            
+            # Fallback to template generation
+            return self.generate_fallback_script(topic, style, num_segments)
+    
+    def generate_video_with_content(self, topic: str, source_content: str = None, humor_type: str = None, original_title: str = None, **kwargs) -> Dict[str, Any]:
+        """
+        Enhanced video generation with satirical content integration
+        """
+        generation_start = time.time()
+        
+        try:
+            print(f"\nEnhanced Local Video Generation with Satirical Content Starting")
+            print(f"   Topic: {topic}")
+            print(f"   Original Title: {original_title}")
+            print(f"   Humor Type: {humor_type}")
+            print(f"   Session: {self.session_id}")
+            print(f"   Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            
+            # Validate parameters
+            params = self.validate_generation_params(topic, **kwargs)
+        
+            results = {
+                'session_id': self.session_id,
+                'session_dir': self.session_dir,
+                'generation_params': params,
+                'start_time': generation_start,
+                'original_content': {
+                    'title': original_title,
+                    'humor_type': humor_type,
+                    'source_preview': source_content[:200] if source_content else None
+                }
+            }
+            
+            # Step 1: Enhanced Script Generation with Content
+            print(f"\nStep 1: Generating satirical script with Gemini...")
+            script_data = self.generate_enhanced_script_with_content(
+                params["topic"], 
+                params["style"], 
+                params["num_segments"],
+                source_content,
+                humor_type
+            )
+            script_file = self.create_local_json_file(script_data, "satirical_script.json")
+            results['script_file'] = script_file
+            results['script_data'] = script_data
+            print(f"[OK] Satirical script generated: {script_file}")
+            
+            # Continue with the rest of the video generation process
+            # (This follows the same pattern as the original generate_video method)
+            
+            # Step 2: Enhanced Speech Generation with ElevenLabs
+            print(f"\n[AUDIO] Step 2: Generating high-quality speech with ElevenLabs...")
+            try:
+                speech_event = {
+                    "text": script_data["Text"],
+                    "language": params["language"],
+                    "voice_speed": params["voice_speed"],
+                    "format": "mp3"
+                }
+                speech_result = generate_speech(speech_event, None)
+                
+                if not speech_result.get('success', True):
+                    raise Exception(f"Speech generation failed: {speech_result.get('error', 'Unknown error')}")
+                
+                # Move audio file to session directory
+                audio_file = speech_result.get('audio_file')
+                if not audio_file or not os.path.exists(audio_file):
+                    raise Exception("Speech generation did not produce audio file")
+                
+                file_extension = os.path.splitext(audio_file)[1]
+                session_audio = os.path.join(self.session_dir, f"satirical_narration_{self.session_id}{file_extension}")
+                os.rename(audio_file, session_audio)
+                speech_result['audio_url'] = session_audio
+                
+                # Get audio duration
+                from moviepy.audio.io.AudioFileClip import AudioFileClip
+                temp_audio = AudioFileClip(session_audio)
+                audio_duration = temp_audio.duration
+                temp_audio.close()
+                
+                results.update(speech_result)
+                print(f"[OK] Speech generated: {session_audio}")
+                
+            except Exception as speech_error:
+                error_msg = f"Speech generation failed: {speech_error}"
+                self.stats['errors'].append(error_msg)
+                print(f"[ERROR] {error_msg}")
+                raise LocalVideoGeneratorError(error_msg)
+            
+            # Step 3: Enhanced Video Generation
+            print(f"\n[STYLE] Step 3: Generating satirical video from images...")
+            try:
+                sentences_file = self.create_local_json_file(script_data["sentences"], "satirical_sentences.json")
+                
+                video_event = {
+                    "img_prompt": f"High-quality satirical and humorous scenes about {original_title or params['topic']}, {humor_type} style, entertaining visuals",
+                    "img_style_prompt": "professional, detailed, high resolution, humorous, satirical, engaging",
+                    "negative_prompt": "blurry, low quality, pixelated, distorted, watermark, text, logo",
+                    "width": params["width"],
+                    "height": params["height"],
+                    "fps": params["fps"],
+                    "video_duration": audio_duration,
+                    "image_duration": audio_duration / params["num_segments"],
+                    "sentences_json_url": sentences_file,
+                    "transition_time": params["transition_time"],
+                    "transition_overlap": False,
+                    "seed": -1,
+                    "video_prompt": f"Satirical video about {original_title or params['topic']} with {humor_type} humor"
+                }
+                
+                video_result = generate_video(video_event, None)
+                
+                if not video_result.get('success', True):
+                    raise Exception(f"Video generation failed: {video_result.get('error', 'Unknown error')}")
+                
+                results.update(video_result)
+                print(f"[OK] Satirical video generated successfully")
+                
+            except Exception as video_error:
+                error_msg = f"Video generation failed: {video_error}"
+                self.stats['errors'].append(error_msg)
+                print(f"[ERROR] {error_msg}")
+                raise LocalVideoGeneratorError(error_msg)
+            
+            # Final processing and success reporting
+            processing_time = time.time() - generation_start
+            results.update({
+                'success': True,
+                'processing_time': processing_time,
+                'duration': audio_duration,
+                'generation_stats': self.stats,
+                'satirical_metadata': {
+                    'original_title': original_title,
+                    'humor_type': humor_type,
+                    'content_preview': source_content[:200] if source_content else None
+                }
+            })
+            
+            print(f"[SUCCESS] Satirical video generation completed in {processing_time:.1f}s")
+            return results
+            
+        except Exception as e:
+            processing_time = time.time() - generation_start
+            error_result = {
+                'success': False,
+                'error': str(e),
+                'session_dir': self.session_dir,
+                'processing_time': processing_time,
+                'partial_results': True
+            }
+            print(f"[ERROR] Satirical video generation failed: {e}")
+            return error_result
+    
     def validate_generation_params(self, topic: str, **kwargs) -> Dict[str, Any]:
         """
         Validate and optimize generation parameters
@@ -548,7 +727,7 @@ class LocalVideoGenerator:
                     final_clip.close()
                     
                     print(f"[OK] Fallback audio combination successful: {final_video}")
-                    audio_duration = min_duration
+                    audio_duration = min_duration 
                     
                 except Exception as fallback_error:
                     print(f"[ERROR] Even fallback audio combination failed: {fallback_error}")
