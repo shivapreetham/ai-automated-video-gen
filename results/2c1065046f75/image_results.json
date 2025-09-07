@@ -1,0 +1,278 @@
+{
+  "success": true,
+  "images_generated": 7,
+  "images_failed": 0,
+  "total_images_requested": 7,
+  "segments_with_images": [
+    {
+      "segment_number": 1,
+      "segment_text": "The Himalayas rise majestically, their snow-capped peaks piercing the dawn.  Young Arjun, his eyes filled with yearning, approaches the hermitage of Rishi Vishwamitra.",
+      "segment_type": "narrative",
+      "emotional_tone": "hopeful",
+      "duration_seconds": 13.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\2c1065046f75\\segment_01_1757266613_29516c3a.png",
+          "filename": "segment_01_1757266613_29516c3a.png",
+          "file_size": 52757,
+          "original_prompt": "Epic wide shot of the Himalayas at dawn.  A small hermitage nestled amidst towering pines is visible in the lower third.  Misty atmosphere, golden light., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "enhanced_prompt": "Epic wide shot of the Himalayas at dawn. A small hermitage nestled amidst towering pines is visible in the lower third. Misty atmosphere, golden light., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 13.0,
+          "segment_duration": 13.0,
+          "generation_time": 6.332762002944946,
+          "segment_number": 1,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 2,
+      "segment_text": "Arjun:  Great Rishi, I seek your wisdom.  Guide me on the path to enlightenment.",
+      "segment_type": "dialog",
+      "emotional_tone": "respectful",
+      "duration_seconds": 8.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\2c1065046f75\\segment_02_1757266619_6d40c8e3.png",
+          "filename": "segment_02_1757266619_6d40c8e3.png",
+          "file_size": 78820,
+          "original_prompt": "Close-up shot of Arjun, kneeling respectfully before Rishi Vishwamitra, who sits in deep meditation in a serene cave., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "enhanced_prompt": "Close-up shot of Arjun, kneeling respectfully before Rishi Vishwamitra, who sits in deep meditation in a serene cave., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 8.5,
+          "segment_duration": 8.5,
+          "generation_time": 10.414966106414795,
+          "segment_number": 2,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 3,
+      "segment_text": "Rishi Vishwamitra: The path is arduous, Arjun.  Are you prepared to face your doubts?",
+      "segment_type": "dialog",
+      "emotional_tone": "serious",
+      "duration_seconds": 8.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\2c1065046f75\\segment_03_1757266629_5f41b3da.png",
+          "filename": "segment_03_1757266629_5f41b3da.png",
+          "file_size": 108554,
+          "original_prompt": "Medium shot of Rishi Vishwamitra, his eyes piercing and wise, looking directly at Arjun., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "enhanced_prompt": "Medium shot of Rishi Vishwamitra, his eyes piercing and wise, looking directly at Arjun., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 8.5,
+          "segment_duration": 8.5,
+          "generation_time": 5.610046148300171,
+          "segment_number": 3,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 4,
+      "segment_text": "Years passed in rigorous training. Arjun endured harsh winters and scorching summers, mastering ancient scriptures and challenging physical austerities.  Doubt often crept into his mind but the Rishi's guidance kept him steadfast.",
+      "segment_type": "narrative",
+      "emotional_tone": "determined",
+      "duration_seconds": 17.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\2c1065046f75\\segment_04_1757266634_e0c459b5.png",
+          "filename": "segment_04_1757266634_e0c459b5.png",
+          "file_size": 48385,
+          "original_prompt": "Montage of scenes: Arjun meditating, studying ancient texts, performing rigorous physical exercises under the guidance of the Rishi.  Use time-lapses and quick cuts., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "enhanced_prompt": "Montage of scenes: Arjun meditating, studying ancient texts, performing rigorous physical exercises under the guidance of the Rishi. Use time-lapses and quick cuts., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 17.5,
+          "segment_duration": 17.5,
+          "generation_time": 5.51880145072937,
+          "segment_number": 4,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 5,
+      "segment_text": "Arjun:  Master, I question everything! Is this path even real?",
+      "segment_type": "mixed",
+      "emotional_tone": "despairing",
+      "duration_seconds": 6.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\2c1065046f75\\segment_05_1757266639_a1eea5bd.png",
+          "filename": "segment_05_1757266639_a1eea5bd.png",
+          "file_size": 121789,
+          "original_prompt": "Arjun, looking distraught, sits alone under a large banyan tree.  The setting sun casts long shadows., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "enhanced_prompt": "Arjun, looking distraught, sits alone under a large banyan tree. The setting sun casts long shadows., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 6.5,
+          "segment_duration": 6.5,
+          "generation_time": 11.721659660339355,
+          "segment_number": 5,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 6,
+      "segment_text": "Then, a soft light enveloped Arjun.  The form of Devi Saraswati appeared, her gentle smile radiating wisdom and compassion.  Her words, a whisper on the wind, reassured him.",
+      "segment_type": "narrative",
+      "emotional_tone": "serene",
+      "duration_seconds": 15.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\2c1065046f75\\segment_06_1757266650_2ad7aada.png",
+          "filename": "segment_06_1757266650_2ad7aada.png",
+          "file_size": 52943,
+          "original_prompt": "Devi Saraswati appears in a radiant ethereal form, surrounded by gentle light. Arjun looks up in awe., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "enhanced_prompt": "Devi Saraswati appears in a radiant ethereal form, surrounded by gentle light. Arjun looks up in awe., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 15.5,
+          "segment_duration": 15.5,
+          "generation_time": 6.663046836853027,
+          "segment_number": 6,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 7,
+      "segment_text": "Arjun, renewed in his purpose, continued his journey, now with a deeper understanding of the path. The whispers of the Veda echoed in his heart.",
+      "segment_type": "narrative",
+      "emotional_tone": "peaceful",
+      "duration_seconds": 14.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\2c1065046f75\\segment_07_1757266656_b020e815.png",
+          "filename": "segment_07_1757266656_b020e815.png",
+          "file_size": 52401,
+          "original_prompt": "Arjun, serene and enlightened, walking away from the hermitage towards the setting sun, a silhouette against the Himalayan peaks., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "enhanced_prompt": "Arjun, serene and enlightened, walking away from the hermitage towards the setting sun, a silhouette against the Himalayan peaks., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 14.0,
+          "segment_duration": 14.0,
+          "generation_time": 10.599210739135742,
+          "segment_number": 7,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    }
+  ],
+  "total_file_size": 515649,
+  "image_results": [
+    {
+      "success": true,
+      "image_file": "results\\2c1065046f75\\segment_01_1757266613_29516c3a.png",
+      "filename": "segment_01_1757266613_29516c3a.png",
+      "file_size": 52757,
+      "original_prompt": "Epic wide shot of the Himalayas at dawn.  A small hermitage nestled amidst towering pines is visible in the lower third.  Misty atmosphere, golden light., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "enhanced_prompt": "Epic wide shot of the Himalayas at dawn. A small hermitage nestled amidst towering pines is visible in the lower third. Misty atmosphere, golden light., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "image_duration": 13.0,
+      "segment_duration": 13.0,
+      "generation_time": 6.332762002944946,
+      "segment_number": 1,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\2c1065046f75\\segment_02_1757266619_6d40c8e3.png",
+      "filename": "segment_02_1757266619_6d40c8e3.png",
+      "file_size": 78820,
+      "original_prompt": "Close-up shot of Arjun, kneeling respectfully before Rishi Vishwamitra, who sits in deep meditation in a serene cave., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "enhanced_prompt": "Close-up shot of Arjun, kneeling respectfully before Rishi Vishwamitra, who sits in deep meditation in a serene cave., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "image_duration": 8.5,
+      "segment_duration": 8.5,
+      "generation_time": 10.414966106414795,
+      "segment_number": 2,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\2c1065046f75\\segment_03_1757266629_5f41b3da.png",
+      "filename": "segment_03_1757266629_5f41b3da.png",
+      "file_size": 108554,
+      "original_prompt": "Medium shot of Rishi Vishwamitra, his eyes piercing and wise, looking directly at Arjun., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "enhanced_prompt": "Medium shot of Rishi Vishwamitra, his eyes piercing and wise, looking directly at Arjun., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "image_duration": 8.5,
+      "segment_duration": 8.5,
+      "generation_time": 5.610046148300171,
+      "segment_number": 3,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\2c1065046f75\\segment_04_1757266634_e0c459b5.png",
+      "filename": "segment_04_1757266634_e0c459b5.png",
+      "file_size": 48385,
+      "original_prompt": "Montage of scenes: Arjun meditating, studying ancient texts, performing rigorous physical exercises under the guidance of the Rishi.  Use time-lapses and quick cuts., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "enhanced_prompt": "Montage of scenes: Arjun meditating, studying ancient texts, performing rigorous physical exercises under the guidance of the Rishi. Use time-lapses and quick cuts., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "image_duration": 17.5,
+      "segment_duration": 17.5,
+      "generation_time": 5.51880145072937,
+      "segment_number": 4,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\2c1065046f75\\segment_05_1757266639_a1eea5bd.png",
+      "filename": "segment_05_1757266639_a1eea5bd.png",
+      "file_size": 121789,
+      "original_prompt": "Arjun, looking distraught, sits alone under a large banyan tree.  The setting sun casts long shadows., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "enhanced_prompt": "Arjun, looking distraught, sits alone under a large banyan tree. The setting sun casts long shadows., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "image_duration": 6.5,
+      "segment_duration": 6.5,
+      "generation_time": 11.721659660339355,
+      "segment_number": 5,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\2c1065046f75\\segment_06_1757266650_2ad7aada.png",
+      "filename": "segment_06_1757266650_2ad7aada.png",
+      "file_size": 52943,
+      "original_prompt": "Devi Saraswati appears in a radiant ethereal form, surrounded by gentle light. Arjun looks up in awe., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "enhanced_prompt": "Devi Saraswati appears in a radiant ethereal form, surrounded by gentle light. Arjun looks up in awe., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "image_duration": 15.5,
+      "segment_duration": 15.5,
+      "generation_time": 6.663046836853027,
+      "segment_number": 6,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\2c1065046f75\\segment_07_1757266656_b020e815.png",
+      "filename": "segment_07_1757266656_b020e815.png",
+      "file_size": 52401,
+      "original_prompt": "Arjun, serene and enlightened, walking away from the hermitage towards the setting sun, a silhouette against the Himalayan peaks., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "enhanced_prompt": "Arjun, serene and enlightened, walking away from the hermitage towards the setting sun, a silhouette against the Himalayan peaks., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+      "image_duration": 14.0,
+      "segment_duration": 14.0,
+      "generation_time": 10.599210739135742,
+      "segment_number": 7,
+      "image_number": 1
+    }
+  ],
+  "generation_method": "single_image_per_segment"
+}

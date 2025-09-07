@@ -12,7 +12,8 @@ import random
 from typing import List, Dict, Any
 from PIL import Image
 
-POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt/"
+# Always use query-param `prompt` (no path embedding)
+POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt"
 
 def generate_images(segments: List[Dict], width: int = 1024, height: int = 576, output_dir: str = ".", model: str = 'flux') -> Dict[str, Any]:
     """
@@ -100,18 +101,24 @@ def generate_single_image(prompt: str, width: int, height: int, output_dir: str,
     # Ensure seed is in valid range (avoid very small numbers)
     seed = max(seed, 100000)
     
-    # Model fallback list
-    model_fallbacks = ['flux', 'flux-realism', 'flux-anime', 'turbo']
+    # Model fallback list (rotate starting from requested model)
+    model_fallbacks = ['flux', 'flux-realism', 'flux-anime', 'flux-3d', 'turbo']
     if model not in model_fallbacks:
         model = 'flux'
-    
-    # Use clean enhancement approach
-    enhanced_prompt = clean_and_enhance_prompt(prompt)
+
+    start_idx = model_fallbacks.index(model)
+    models_to_try = model_fallbacks[start_idx:] + model_fallbacks[:start_idx]
+
+    # Allow raw prompt via env to avoid meddling
+    use_raw = str(os.getenv("POLLINATIONS_USE_RAW_PROMPT", "")).lower() in ("1", "true", "yes")
+    enhanced_prompt = prompt.strip() if use_raw else clean_and_enhance_prompt(prompt)
     encoded_prompt = urllib.parse.quote(enhanced_prompt)
     
+    # Force query-param mode
+    use_query = True
+    
     # Try each model in fallback order
-    for model_attempt in model_fallbacks:
-        current_model = model_attempt if model_attempt == model else (model_fallbacks[model_fallbacks.index(model):] + model_fallbacks[:model_fallbacks.index(model)])[model_fallbacks.index(model_attempt)]
+    for current_model in models_to_try:
         
         # Build URL with parameters
         params = {
@@ -125,8 +132,13 @@ def generate_single_image(prompt: str, width: int, height: int, output_dir: str,
             'safe': 'true'
         }
     
-        param_string = "&".join([f"{k}={v}" for k, v in params.items()])
-        full_url = f"{POLLINATIONS_BASE_URL}{encoded_prompt}?{param_string}"
+        if use_query:
+            full_url = POLLINATIONS_BASE_URL.rstrip('/')
+            request_kwargs = {"params": {**params, "prompt": enhanced_prompt}}
+        else:
+            param_string = "&".join([f"{k}={v}" for k, v in params.items()])
+            full_url = f"{POLLINATIONS_BASE_URL}{encoded_prompt}?{param_string}"
+            request_kwargs = {}
         
         print(f"[MODEL] Trying {current_model} with seed {params['seed']}...")
         
@@ -148,7 +160,10 @@ def generate_single_image(prompt: str, width: int, height: int, output_dir: str,
                     'Accept': 'image/*,*/*;q=0.8'
                 }
                 
-                response = requests.get(full_url, timeout=45, headers=headers)
+                if use_query:
+                    response = requests.get(full_url, timeout=45, headers=headers, **request_kwargs)
+                else:
+                    response = requests.get(full_url, timeout=45, headers=headers)
                 response.raise_for_status()
                 
                 # Check content type

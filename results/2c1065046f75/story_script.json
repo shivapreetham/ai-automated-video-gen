@@ -1,0 +1,210 @@
+{
+  "story_title": "The Whispers of the Veda",
+  "story_summary": "A young Brahmin, yearning for enlightenment, embarks on a challenging journey under the tutelage of a wise Rishi.  Their bond is tested by doubt and hardship, ultimately leading to profound spiritual growth.",
+  "characters": [
+    {
+      "name": "Arjun",
+      "description": "A curious and determined young Brahmin, eager to learn the ancient wisdom.",
+      "role": "protagonist"
+    },
+    {
+      "name": "Rishi Vishwamitra",
+      "description": "A revered and powerful Rishi, known for his wisdom and demanding teachings.",
+      "role": "supporting"
+    },
+    {
+      "name": "Devi Saraswati",
+      "description": "The Goddess of knowledge and wisdom, appearing as a guiding presence.",
+      "role": "supporting"
+    }
+  ],
+  "full_text": "The Himalayas rise majestically, their snow-capped peaks piercing the dawn.  Young Arjun, his eyes filled with yearning, approaches the hermitage of Rishi Vishwamitra. Arjun:  Great Rishi, I seek your wisdom.  Guide me on the path to enlightenment. Rishi Vishwamitra: The path is arduous, Arjun.  Are you prepared to face your doubts? Years passed in rigorous training. Arjun endured harsh winters and scorching summers, mastering ancient scriptures and challenging physical austerities.  Doubt often crept into his mind but the Rishi's guidance kept him steadfast. Arjun:  Master, I question everything! Is this path even real? Then, a soft light enveloped Arjun.  The form of Devi Saraswati appeared, her gentle smile radiating wisdom and compassion.  Her words, a whisper on the wind, reassured him. Arjun, renewed in his purpose, continued his journey, now with a deeper understanding of the path. The whispers of the Veda echoed in his heart.",
+  "segments": [
+    {
+      "segment_number": 1,
+      "segment_type": "narrative",
+      "text": "The Himalayas rise majestically, their snow-capped peaks piercing the dawn.  Young Arjun, his eyes filled with yearning, approaches the hermitage of Rishi Vishwamitra.",
+      "character_speaking": null,
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "Epic wide shot of the Himalayas at dawn.  A small hermitage nestled amidst towering pines is visible in the lower third.  Misty atmosphere, golden light., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 4,
+          "start_time": 0,
+          "end_time": 4,
+          "visual_focus": "Establishing the setting and Arjun's journey"
+        }
+      ],
+      "caption_text": "A journey begins...",
+      "story_purpose": "Introduction of setting and protagonist's ambition",
+      "emotional_tone": "hopeful",
+      "transition_to_next": "Arjun arrives at the hermitage",
+      "duration_seconds": 13.0,
+      "start_time": 0,
+      "end_time": 13.0,
+      "word_count": 23,
+      "image_count": 1
+    },
+    {
+      "segment_number": 2,
+      "segment_type": "dialog",
+      "text": "Arjun:  Great Rishi, I seek your wisdom.  Guide me on the path to enlightenment.",
+      "character_speaking": "Arjun",
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "Close-up shot of Arjun, kneeling respectfully before Rishi Vishwamitra, who sits in deep meditation in a serene cave., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 3,
+          "start_time": 0,
+          "end_time": 3,
+          "visual_focus": "Arjun's humility and Rishi's authority"
+        }
+      ],
+      "caption_text": "A request for guidance",
+      "story_purpose": "Initiating the teacher-student relationship",
+      "emotional_tone": "respectful",
+      "transition_to_next": "Rishi's response sets the tone for their journey",
+      "duration_seconds": 8.5,
+      "start_time": 13.0,
+      "end_time": 21.5,
+      "word_count": 14,
+      "image_count": 1
+    },
+    {
+      "segment_number": 3,
+      "segment_type": "dialog",
+      "text": "Rishi Vishwamitra: The path is arduous, Arjun.  Are you prepared to face your doubts?",
+      "character_speaking": "Rishi Vishwamitra",
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "Medium shot of Rishi Vishwamitra, his eyes piercing and wise, looking directly at Arjun., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 2.5,
+          "start_time": 0,
+          "end_time": 2.5,
+          "visual_focus": "Rishi's wisdom and the challenge ahead"
+        }
+      ],
+      "caption_text": "The challenge begins",
+      "story_purpose": "Introduce the conflict and set expectations",
+      "emotional_tone": "serious",
+      "transition_to_next": "Arjun's training begins",
+      "duration_seconds": 8.5,
+      "start_time": 21.5,
+      "end_time": 30.0,
+      "word_count": 14,
+      "image_count": 1
+    },
+    {
+      "segment_number": 4,
+      "segment_type": "narrative",
+      "text": "Years passed in rigorous training. Arjun endured harsh winters and scorching summers, mastering ancient scriptures and challenging physical austerities.  Doubt often crept into his mind but the Rishi's guidance kept him steadfast.",
+      "character_speaking": null,
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "Montage of scenes: Arjun meditating, studying ancient texts, performing rigorous physical exercises under the guidance of the Rishi.  Use time-lapses and quick cuts., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 6,
+          "start_time": 0,
+          "end_time": 6,
+          "visual_focus": "Illustrating the challenges of the training"
+        }
+      ],
+      "caption_text": "Years of dedication",
+      "story_purpose": "Show the passage of time and character development",
+      "emotional_tone": "determined",
+      "transition_to_next": "Arjun faces a crisis of faith",
+      "duration_seconds": 17.5,
+      "start_time": 30.0,
+      "end_time": 47.5,
+      "word_count": 32,
+      "image_count": 1
+    },
+    {
+      "segment_number": 5,
+      "segment_type": "mixed",
+      "text": "Arjun:  Master, I question everything! Is this path even real?",
+      "character_speaking": "Arjun",
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "Arjun, looking distraught, sits alone under a large banyan tree.  The setting sun casts long shadows., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 3,
+          "start_time": 0,
+          "end_time": 3,
+          "visual_focus": "Arjun's internal struggle"
+        }
+      ],
+      "caption_text": "A crisis of faith",
+      "story_purpose": "Climax - Arjun's moment of doubt",
+      "emotional_tone": "despairing",
+      "transition_to_next": "Resolution through divine intervention",
+      "duration_seconds": 6.5,
+      "start_time": 47.5,
+      "end_time": 54.0,
+      "word_count": 10,
+      "image_count": 1
+    },
+    {
+      "segment_number": 6,
+      "segment_type": "narrative",
+      "text": "Then, a soft light enveloped Arjun.  The form of Devi Saraswati appeared, her gentle smile radiating wisdom and compassion.  Her words, a whisper on the wind, reassured him.",
+      "character_speaking": null,
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "Devi Saraswati appears in a radiant ethereal form, surrounded by gentle light. Arjun looks up in awe., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 4,
+          "start_time": 0,
+          "end_time": 4,
+          "visual_focus": "Divine intervention and reassurance"
+        }
+      ],
+      "caption_text": "Guidance from above",
+      "story_purpose": "Resolution of the conflict",
+      "emotional_tone": "serene",
+      "transition_to_next": "The final scene",
+      "duration_seconds": 15.5,
+      "start_time": 54.0,
+      "end_time": 69.5,
+      "word_count": 28,
+      "image_count": 1
+    },
+    {
+      "segment_number": 7,
+      "segment_type": "narrative",
+      "text": "Arjun, renewed in his purpose, continued his journey, now with a deeper understanding of the path. The whispers of the Veda echoed in his heart.",
+      "character_speaking": null,
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "Arjun, serene and enlightened, walking away from the hermitage towards the setting sun, a silhouette against the Himalayan peaks., Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects, professional quality",
+          "image_duration": 3,
+          "start_time": 0,
+          "end_time": 3,
+          "visual_focus": "Arjun's transformation and the lasting impact"
+        }
+      ],
+      "caption_text": "Enlightenment found",
+      "story_purpose": "Concluding the story with a sense of peace",
+      "emotional_tone": "peaceful",
+      "transition_to_next": "End of story",
+      "duration_seconds": 14.0,
+      "start_time": 69.5,
+      "end_time": 83.5,
+      "word_count": 25,
+      "image_count": 1
+    }
+  ],
+  "total_segments": 7,
+  "estimated_duration": 83.5,
+  "script_length": "medium",
+  "topic": "mythological hindu teacher and student",
+  "visual_theme": "Mystical Himalayan landscape, rich color palette, soft lighting, ethereal effects",
+  "target_emotion": "Inspiration and peace",
+  "video_style": "Epic, dramatic, with moments of serenity",
+  "total_images": 7,
+  "has_dialogs": true,
+  "generated_at": "2025-09-07T23:06:28.156828",
+  "generator": "story_enhanced"
+}

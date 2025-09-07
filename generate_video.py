@@ -10,7 +10,7 @@ import os
 # Add local_functions to Python path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'local_functions'))
 
-from local_video_generator import LocalVideoGenerator
+from old_functions.local_video_generator import LocalVideoGenerator
 
 def main():
     """Simple interface for video generation"""
