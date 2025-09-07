@@ -14,7 +14,9 @@ from typing import Dict, Any
 from flask import Flask, request, jsonify, send_file
 from werkzeug.exceptions import BadRequest, NotFound
 
+# Import both old and new video generation systems
 from video_generator import generate_video_complete, VideoGenerationError
+from backend_functions.story_video_generator import generate_story_video, validate_system_requirements
 
 app = Flask(__name__, static_folder='static')
 
@@ -55,18 +57,33 @@ def api_info():
         "service": "AI Video Generator Backend",
         "version": "2.0 - Independent Backend",
         "status": "running",
-        "workflow": [
-            "1. Generate script with Gemini (segments based on script_size)",
-            "2. Generate audio with ElevenLabs (get actual duration)",
-            "3. Generate multiple images with Pollinations (one per segment)", 
-            "4. Create video with FFmpeg (images + audio combined)"
-        ],
+        "workflow": {
+            "legacy": [
+                "1. Generate script with Gemini (segments based on script_size)",
+                "2. Generate audio with ElevenLabs (get actual duration)",
+                "3. Generate multiple images with Pollinations (one per segment)", 
+                "4. Create video with FFmpeg (images + audio combined)"
+            ],
+            "story_mode": [
+                "1. Generate story script with characters & dialogs",
+                "2. Generate per-segment audio with voice variety",
+                "3. Generate contextual images per segment (1-3 per segment)",
+                "4. Create per-segment videos with proper sync",
+                "5. Stitch segments into final story with captions"
+            ]
+        },
         "parameters": {
             "required": {"topic": "string"},
             "optional": {
                 "width": "integer (default: 1024)",
                 "height": "integer (default: 576)", 
-                "script_size": "string: short/medium/long (default: medium)"
+                "script_length": "string: short/medium/long (default: medium)",
+                "voice": "string: nova/alloy/echo/fable (default: alloy)",
+                "img_style_prompt": "string (default: 'cinematic, professional')",
+                "story_mode": "boolean: use new story-driven system (default: false)",
+                "include_dialogs": "boolean: include character dialogs (default: true)",
+                "use_different_voices": "boolean: different voices for characters (default: true)",
+                "add_captions": "boolean: add subtitle overlay (default: true)"
             }
         },
         "endpoints": {
@@ -75,7 +92,8 @@ def api_info():
             "GET /jobs/<job_id>/download": "Download completed video",
             "GET /jobs/<job_id>/files": "List all job files",
             "GET /jobs": "List all jobs",
-            "POST /cleanup": "Clean all job data"
+            "POST /cleanup": "Clean all job data",
+            "GET /system-check": "Validate system requirements"
         }
     })
 
@@ -95,11 +113,19 @@ def generate_video():
         # Get parameters with defaults
         width = int(data.get("width", 1024))
         height = int(data.get("height", 576))
-        script_size = data.get("script_size", "medium")
+        script_length = data.get("script_length", data.get("script_size", "medium"))  # backward compatibility
+        voice = data.get("voice", "alloy")
+        img_style_prompt = data.get("img_style_prompt", "cinematic, professional")
+        story_mode = bool(data.get("story_mode", False))
+        include_dialogs = bool(data.get("include_dialogs", True))
+        use_different_voices = bool(data.get("use_different_voices", True))
+        add_captions = bool(data.get("add_captions", True))
         
         # Validate parameters
-        if script_size not in ["short", "medium", "long"]:
-            script_size = "medium"
+        if script_length not in ["short", "medium", "long"]:
+            script_length = "medium"
+        if voice not in ["nova", "alloy", "echo", "fable"]:
+            voice = "alloy"
         
         if width < 256 or width > 2048:
             width = 1024
@@ -118,7 +144,13 @@ def generate_video():
             "topic": topic.strip(),
             "width": width,
             "height": height,
-            "script_size": script_size
+            "script_length": script_length,
+            "voice": voice,
+            "img_style_prompt": img_style_prompt,
+            "story_mode": story_mode,
+            "include_dialogs": include_dialogs,
+            "use_different_voices": use_different_voices,
+            "add_captions": add_captions
         }
         
         thread = threading.Thread(target=process_video_job, args=(params,))
@@ -132,7 +164,8 @@ def generate_video():
             "message": "Video generation started",
             "parameters": params,
             "check_status": f"/jobs/{job_id}/status",
-            "workflow": "Script → Audio → Images → Video+Audio (FFmpeg)"
+            "workflow": "Story Mode: Script → Segment Audio → Segment Images → Segment Videos → Stitch Final" if story_mode else "Legacy: Script → Audio → Images → Video+Audio (FFmpeg)",
+            "mode": "story" if story_mode else "legacy"
         })
         
     except BadRequest as e:
@@ -141,10 +174,11 @@ def generate_video():
         return jsonify({"success": False, "error": f"Server error: {e}"}), 500
 
 def process_video_job(params: Dict[str, Any]):
-    """Background video generation process"""
+    """Background video generation process - supports both legacy and story modes"""
     
     job_id = params["job_id"]
     job = active_jobs[job_id]
+    story_mode = params.get("story_mode", False)
     
     try:
         job.status = "processing"
@@ -153,39 +187,88 @@ def process_video_job(params: Dict[str, Any]):
         job.current_step = "Initializing"
         job.updated_at = datetime.now()
         
-        # Step 1: Script Generation
-        job.progress = 20
-        job.message = "Generating script with Gemini AI..."
-        job.current_step = "Script Generation"
-        job.updated_at = datetime.now()
-        
-        # Step 2: Audio Generation  
-        job.progress = 40
-        job.message = "Generating audio with ElevenLabs..."
-        job.current_step = "Audio Generation"
-        job.updated_at = datetime.now()
-        
-        # Step 3: Image Generation
-        job.progress = 60
-        job.message = "Generating images with Pollinations AI..."
-        job.current_step = "Image Generation" 
-        job.updated_at = datetime.now()
-        
-        # Step 4: Video Creation
-        job.progress = 80
-        job.message = "Creating video with FFmpeg..."
-        job.current_step = "Video Creation"
-        job.updated_at = datetime.now()
-        
-        # Actually run the complete pipeline
         start_time = time.time()
-        result = generate_video_complete(
-            job_id=job_id,
-            topic=params["topic"],
-            width=params["width"],
-            height=params["height"],
-            script_size=params["script_size"]
-        )
+        
+        if story_mode:
+            # New story-driven system
+            job.progress = 15
+            job.message = "Using enhanced story generation system..."
+            job.current_step = "Story Mode Initialization"
+            job.updated_at = datetime.now()
+            
+            result = generate_story_video(
+                topic=params["topic"],
+                script_length=params["script_length"],
+                voice=params["voice"],
+                width=params["width"],
+                height=params["height"],
+                fps=24,
+                img_style_prompt=params["img_style_prompt"],
+                include_dialogs=params["include_dialogs"],
+                use_different_voices=params["use_different_voices"],
+                add_captions=params["add_captions"],
+                add_title_card=True,
+                add_end_card=True
+            )
+            
+            if not result.get("success"):
+                raise VideoGenerationError(result.get("error", "Story generation failed"))
+            
+            # Map story results to job result format
+            job_result = {
+                "job_folder": result["output_dir"],
+                "video_file": result["final_video"]["file_path"],
+                "story_title": result["story_info"]["title"],
+                "story_summary": result["story_info"]["summary"],
+                "characters": result["story_info"]["characters"],
+                "total_segments": result["story_info"]["total_segments"],
+                "has_dialogs": result["story_info"]["has_dialogs"],
+                "generation_stages": result["stages"],
+                "processing_time": result["total_generation_time"],
+                "mode": "story"
+            }
+            
+        else:
+            # Legacy system
+            job.progress = 20
+            job.message = "Generating script with Gemini AI..."
+            job.current_step = "Script Generation"
+            job.updated_at = datetime.now()
+            
+            job.progress = 40
+            job.message = "Generating audio with ElevenLabs..."
+            job.current_step = "Audio Generation"
+            job.updated_at = datetime.now()
+            
+            job.progress = 60
+            job.message = "Generating images with Pollinations AI..."
+            job.current_step = "Image Generation" 
+            job.updated_at = datetime.now()
+            
+            job.progress = 80
+            job.message = "Creating video with FFmpeg..."
+            job.current_step = "Video Creation"
+            job.updated_at = datetime.now()
+            
+            # Use legacy system
+            result = generate_video_complete(
+                job_id=job_id,
+                topic=params["topic"],
+                width=params["width"],
+                height=params["height"],
+                script_size=params["script_length"]  # Convert parameter name
+            )
+            
+            job_result = {
+                "job_folder": f"results/{job_id}",
+                "video_file": result["files"]["video"],
+                "audio_file": result["files"]["audio"],
+                "script_file": result["files"]["script"],
+                "images": result["files"]["images"],
+                "summary": result["processing_summary"],
+                "processing_time": time.time() - start_time,
+                "mode": "legacy"
+            }
         
         processing_time = time.time() - start_time
         
@@ -195,15 +278,7 @@ def process_video_job(params: Dict[str, Any]):
         job.message = "Video generation completed successfully"
         job.current_step = "Completed"
         job.updated_at = datetime.now()
-        job.result = {
-            "job_folder": f"results/{job_id}",
-            "video_file": result["files"]["video"],
-            "audio_file": result["files"]["audio"],
-            "script_file": result["files"]["script"],
-            "images": result["files"]["images"],
-            "summary": result["processing_summary"],
-            "processing_time": processing_time
-        }
+        job.result = job_result
         
     except Exception as e:
         job.status = "failed"
@@ -345,10 +420,37 @@ def cleanup():
             "error": str(e)
         }), 500
 
+@app.route("/system-check", methods=["GET"])
+def system_check():
+    """Check system requirements and readiness"""
+    
+    try:
+        validation = validate_system_requirements()
+        
+        return jsonify({
+            "system_ready": validation["system_ready"],
+            "issues": validation.get("issues", []),
+            "warnings": validation.get("warnings", []),
+            "components": {
+                "ffmpeg_available": len(validation.get("issues", [])) == 0,
+                "moviepy_available": validation.get("moviepy_available", False),
+                "gtts_available": validation.get("gtts_available", False)
+            },
+            "recommendation": "All systems ready for video generation!" if validation["system_ready"] else "Please install missing components"
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "system_ready": False,
+            "error": str(e),
+            "recommendation": "System check failed - please verify installation"
+        }), 500
+
 if __name__ == "__main__":
     print("Starting AI Video Generator Backend...")
     print("Results will be organized by job ID in results/")
-    print("Workflow: Script -> Audio -> Images -> Video+Audio")
-    print("Independent backend with no local_functions dependency")
+    print("Modes: Legacy (simple) + Story Mode (enhanced with characters & dialogs)")
+    print("Story Mode: Script -> Segment Audio -> Segment Images -> Segment Videos -> Final Stitch")
+    print("Independent backend with enhanced storytelling capabilities")
     
     app.run(host="0.0.0.0", port=8001, debug=True)

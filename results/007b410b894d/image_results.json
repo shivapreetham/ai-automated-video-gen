@@ -1,0 +1,264 @@
+{
+  "success": true,
+  "images_generated": 6,
+  "images_failed": 0,
+  "total_images_requested": 6,
+  "segments_with_images": [
+    {
+      "segment_number": 1,
+      "segment_text": "Years of unspoken words hung heavy between Elias and his father, Thomas. Elias, a successful architect, felt a chasm growing between them, a gap built on different paths and unshared dreams.",
+      "segment_type": "narrative",
+      "emotional_tone": "melancholy",
+      "duration_seconds": 17.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\007b410b894d\\seg_01_img_01_1757254569_ff558edf.jpg",
+          "filename": "seg_01_img_01_1757254569_ff558edf.jpg",
+          "file_size": 127771,
+          "original_prompt": "A wide shot of a modern, sleek cityscape at dusk, contrasted with a small, rustic carpentry workshop in the foreground, slightly out of focus.  Soft, warm lighting., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+          "enhanced_prompt": "A wide shot of a modern, sleek cityscape at dusk, contrasted with a small, rustic carpentry workshop in the foreground, slightly out of focus.  Soft, warm lighting., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, wide shot, establishing scene, detailed environment, high quality, detailed, 4k resolution, professional photography",
+          "image_duration": 4,
+          "start_time": 0,
+          "end_time": 4,
+          "visual_focus": "The contrast between Elias's world and his father's.",
+          "generation_time": 1.8356742858886719,
+          "segment_number": 1,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 2,
+      "segment_text": "Sarah: Elias, your father called. He needs help with a project, a special one he said.",
+      "segment_type": "dialog",
+      "emotional_tone": "hopeful",
+      "duration_seconds": 9.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\007b410b894d\\seg_02_img_01_1757254569_42a50b4e.jpg",
+          "filename": "seg_02_img_01_1757254569_42a50b4e.jpg",
+          "file_size": 127771,
+          "original_prompt": "Close-up of Sarah's concerned yet hopeful face, lit warmly., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+          "enhanced_prompt": "Close-up of Sarah's concerned yet hopeful face, lit warmly., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, medium shot, character focus, expressive lighting, high quality, detailed, 4k resolution, professional photography",
+          "image_duration": 2,
+          "start_time": 0,
+          "end_time": 2,
+          "visual_focus": "Sarah's encouragement",
+          "generation_time": 2.44356107711792,
+          "segment_number": 2,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 3,
+      "segment_text": "Elias hesitantly arrives at his father's workshop.  Thomas, his face etched with age and experience, smiles warmly.  \"Son, good to see you.\"  Elias, surprised, manages a small smile.",
+      "segment_type": "mixed",
+      "emotional_tone": "tender",
+      "duration_seconds": 15.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\007b410b894d\\seg_03_img_01_1757254569_169be4ff.jpg",
+          "filename": "seg_03_img_01_1757254569_169be4ff.jpg",
+          "file_size": 127771,
+          "original_prompt": "Medium shot: Elias cautiously approaches his father in the workshop, sunlight streaming through the window., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+          "enhanced_prompt": "Medium shot: Elias cautiously approaches his father in the workshop, sunlight streaming through the window., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, dynamic composition, balanced framing, high quality, detailed, 4k resolution, professional photography",
+          "image_duration": 3,
+          "start_time": 0,
+          "end_time": 3,
+          "visual_focus": "The hesitant reunion",
+          "generation_time": 2.4370949268341064,
+          "segment_number": 3,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 4,
+      "segment_text": "Thomas: This cradle...I'm making it for my grandchild.",
+      "segment_type": "dialog",
+      "emotional_tone": "warm",
+      "duration_seconds": 5.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\007b410b894d\\seg_04_img_01_1757254569_34f51a2b.jpg",
+          "filename": "seg_04_img_01_1757254569_34f51a2b.jpg",
+          "file_size": 127771,
+          "original_prompt": "Close-up shot of Thomas's hands carefully shaping wood, showing his skill and care., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+          "enhanced_prompt": "Close-up shot of Thomas's hands carefully shaping wood, showing his skill and care., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, medium shot, character focus, expressive lighting, high quality, detailed, 4k resolution, professional photography",
+          "image_duration": 3,
+          "start_time": 0,
+          "end_time": 3,
+          "visual_focus": "Thomas's craftmanship and love",
+          "generation_time": 2.4715752601623535,
+          "segment_number": 4,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 5,
+      "segment_text": "Father and son work together, their hands moving in a rhythm born of shared experience.  Elias learns about his father's life, his values. Thomas sees the man his son has become.  The air is filled with the scent of sawdust and unspoken love.",
+      "segment_type": "mixed",
+      "emotional_tone": "joyful",
+      "duration_seconds": 23.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\007b410b894d\\seg_05_img_01_1757254570_8d9349cd.jpg",
+          "filename": "seg_05_img_01_1757254570_8d9349cd.jpg",
+          "file_size": 127771,
+          "original_prompt": "Over-the-shoulder shot: Elias and Thomas working side-by-side, focused and content., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+          "enhanced_prompt": "Over-the-shoulder shot: Elias and Thomas working side-by-side, focused and content., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, dynamic composition, balanced framing, high quality, detailed, 4k resolution, professional photography",
+          "image_duration": 5,
+          "start_time": 0,
+          "end_time": 5,
+          "visual_focus": "The shared effort and renewed connection",
+          "generation_time": 2.118739366531372,
+          "segment_number": 5,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 6,
+      "segment_text": "Elias:  Thanks, Dad.  It's beautiful.",
+      "segment_type": "dialog",
+      "emotional_tone": "warm and satisfying",
+      "duration_seconds": 4.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\007b410b894d\\seg_06_img_01_1757254571_65b62c90.jpg",
+          "filename": "seg_06_img_01_1757254571_65b62c90.jpg",
+          "file_size": 127771,
+          "original_prompt": "Close-up shot of the finished cradle, beautifully crafted, bathed in warm light., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+          "enhanced_prompt": "Close-up shot of the finished cradle, beautifully crafted, bathed in warm light., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, medium shot, character focus, expressive lighting, high quality, detailed, 4k resolution, professional photography",
+          "image_duration": 2,
+          "start_time": 0,
+          "end_time": 2,
+          "visual_focus": "The tangible representation of their bond",
+          "generation_time": 2.241065263748169,
+          "segment_number": 6,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    }
+  ],
+  "total_file_size": 766626,
+  "image_results": [
+    {
+      "success": true,
+      "image_file": "results\\007b410b894d\\seg_01_img_01_1757254569_ff558edf.jpg",
+      "filename": "seg_01_img_01_1757254569_ff558edf.jpg",
+      "file_size": 127771,
+      "original_prompt": "A wide shot of a modern, sleek cityscape at dusk, contrasted with a small, rustic carpentry workshop in the foreground, slightly out of focus.  Soft, warm lighting., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+      "enhanced_prompt": "A wide shot of a modern, sleek cityscape at dusk, contrasted with a small, rustic carpentry workshop in the foreground, slightly out of focus.  Soft, warm lighting., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, wide shot, establishing scene, detailed environment, high quality, detailed, 4k resolution, professional photography",
+      "image_duration": 4,
+      "start_time": 0,
+      "end_time": 4,
+      "visual_focus": "The contrast between Elias's world and his father's.",
+      "generation_time": 1.8356742858886719,
+      "segment_number": 1,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\007b410b894d\\seg_02_img_01_1757254569_42a50b4e.jpg",
+      "filename": "seg_02_img_01_1757254569_42a50b4e.jpg",
+      "file_size": 127771,
+      "original_prompt": "Close-up of Sarah's concerned yet hopeful face, lit warmly., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+      "enhanced_prompt": "Close-up of Sarah's concerned yet hopeful face, lit warmly., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, medium shot, character focus, expressive lighting, high quality, detailed, 4k resolution, professional photography",
+      "image_duration": 2,
+      "start_time": 0,
+      "end_time": 2,
+      "visual_focus": "Sarah's encouragement",
+      "generation_time": 2.44356107711792,
+      "segment_number": 2,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\007b410b894d\\seg_03_img_01_1757254569_169be4ff.jpg",
+      "filename": "seg_03_img_01_1757254569_169be4ff.jpg",
+      "file_size": 127771,
+      "original_prompt": "Medium shot: Elias cautiously approaches his father in the workshop, sunlight streaming through the window., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+      "enhanced_prompt": "Medium shot: Elias cautiously approaches his father in the workshop, sunlight streaming through the window., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, dynamic composition, balanced framing, high quality, detailed, 4k resolution, professional photography",
+      "image_duration": 3,
+      "start_time": 0,
+      "end_time": 3,
+      "visual_focus": "The hesitant reunion",
+      "generation_time": 2.4370949268341064,
+      "segment_number": 3,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\007b410b894d\\seg_04_img_01_1757254569_34f51a2b.jpg",
+      "filename": "seg_04_img_01_1757254569_34f51a2b.jpg",
+      "file_size": 127771,
+      "original_prompt": "Close-up shot of Thomas's hands carefully shaping wood, showing his skill and care., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+      "enhanced_prompt": "Close-up shot of Thomas's hands carefully shaping wood, showing his skill and care., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, medium shot, character focus, expressive lighting, high quality, detailed, 4k resolution, professional photography",
+      "image_duration": 3,
+      "start_time": 0,
+      "end_time": 3,
+      "visual_focus": "Thomas's craftmanship and love",
+      "generation_time": 2.4715752601623535,
+      "segment_number": 4,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\007b410b894d\\seg_05_img_01_1757254570_8d9349cd.jpg",
+      "filename": "seg_05_img_01_1757254570_8d9349cd.jpg",
+      "file_size": 127771,
+      "original_prompt": "Over-the-shoulder shot: Elias and Thomas working side-by-side, focused and content., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+      "enhanced_prompt": "Over-the-shoulder shot: Elias and Thomas working side-by-side, focused and content., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, dynamic composition, balanced framing, high quality, detailed, 4k resolution, professional photography",
+      "image_duration": 5,
+      "start_time": 0,
+      "end_time": 5,
+      "visual_focus": "The shared effort and renewed connection",
+      "generation_time": 2.118739366531372,
+      "segment_number": 5,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\007b410b894d\\seg_06_img_01_1757254571_65b62c90.jpg",
+      "filename": "seg_06_img_01_1757254571_65b62c90.jpg",
+      "file_size": 127771,
+      "original_prompt": "Close-up shot of the finished cradle, beautifully crafted, bathed in warm light., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality",
+      "enhanced_prompt": "Close-up shot of the finished cradle, beautifully crafted, bathed in warm light., Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., professional quality, Warm, natural lighting; contrast between modern and rustic settings; focus on hands and details., heartwarming, emotional, cinematic, family, medium shot, character focus, expressive lighting, high quality, detailed, 4k resolution, professional photography",
+      "image_duration": 2,
+      "start_time": 0,
+      "end_time": 2,
+      "visual_focus": "The tangible representation of their bond",
+      "generation_time": 2.241065263748169,
+      "segment_number": 6,
+      "image_number": 1
+    }
+  ],
+  "generation_method": "pollinations_segments"
+}

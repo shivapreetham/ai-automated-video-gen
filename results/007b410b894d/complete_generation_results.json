@@ -1,0 +1,112 @@
+{
+  "generation_id": "007b410b894d",
+  "topic": "son and father warm relation",
+  "parameters": {
+    "script_length": "medium",
+    "voice": "alloy",
+    "width": 1024,
+    "height": 576,
+    "fps": 24,
+    "img_style_prompt": "heartwarming, emotional, cinematic, family",
+    "include_dialogs": true,
+    "use_different_voices": true,
+    "add_captions": true,
+    "add_title_card": true,
+    "add_end_card": true
+  },
+  "output_dir": "results\\007b410b894d",
+  "started_at": "2025-09-07T19:45:48.704589",
+  "stages": {
+    "script_generation": {
+      "success": true,
+      "duration": 11.986754417419434,
+      "script_file": "results\\007b410b894d\\story_script.json",
+      "story_title": "The Carpenter's Legacy",
+      "segments_count": 6,
+      "estimated_duration": 74.5,
+      "has_dialogs": true,
+      "character_count": 3
+    },
+    "audio_generation": {
+      "success": true,
+      "duration": 8.364271402359009,
+      "results_file": "results\\007b410b894d\\audio_results.json",
+      "segments_generated": 6,
+      "segments_failed": 0,
+      "total_duration": 33.168,
+      "total_file_size": 530688,
+      "character_voices": {
+        "narrator": "alloy",
+        "Elias": "nova",
+        "Thomas": "echo",
+        "Sarah": "fable"
+      }
+    },
+    "image_generation": {
+      "success": true,
+      "duration": 4.191974401473999,
+      "results_file": "results\\007b410b894d\\image_results.json",
+      "images_generated": 6,
+      "images_failed": 0,
+      "total_file_size": 766626
+    },
+    "segment_video_creation": {
+      "success": true,
+      "duration": 32.332571029663086,
+      "results_file": "results\\007b410b894d\\segment_video_results.json",
+      "videos_created": 6,
+      "videos_failed": 0,
+      "total_duration": 0.0,
+      "total_file_size": 2499629
+    },
+    "final_video_stitching": {
+      "success": true,
+      "duration": 52.25153875350952,
+      "results_file": "results\\007b410b894d\\final_video_results.json",
+      "final_video_file": "results\\007b410b894d\\The_Carpenter's_Legacy_1757254605_4ec8b1a1.mp4",
+      "filename": "The_Carpenter's_Legacy_1757254605_4ec8b1a1.mp4",
+      "duration_seconds": 0.0,
+      "file_size": 2982262,
+      "segments_included": 6,
+      "captions_added": false,
+      "has_title_card": true,
+      "has_end_card": true
+    }
+  },
+  "success": true,
+  "error": null,
+  "completed_at": "2025-09-07T19:47:37.831699",
+  "total_generation_time": 109.12856078147888,
+  "final_video": {
+    "file_path": "results\\007b410b894d\\The_Carpenter's_Legacy_1757254605_4ec8b1a1.mp4",
+    "filename": "The_Carpenter's_Legacy_1757254605_4ec8b1a1.mp4",
+    "duration_seconds": 0.0,
+    "file_size_mb": 2.844106674194336,
+    "width": 1024,
+    "height": 576,
+    "fps": 24
+  },
+  "story_info": {
+    "title": "The Carpenter's Legacy",
+    "summary": "A young man rediscovers his bond with his aging carpenter father through a shared project, revealing unspoken love and understanding.",
+    "characters": [
+      {
+        "name": "Elias",
+        "description": "A young, ambitious architect, slightly estranged from his father.",
+        "role": "protagonist"
+      },
+      {
+        "name": "Thomas",
+        "description": "A weathered but kind carpenter, proud but reserved.",
+        "role": "supporting"
+      },
+      {
+        "name": "Sarah",
+        "description": "Elias's supportive partner, encouraging the father-son reconciliation.",
+        "role": "supporting"
+      }
+    ],
+    "total_segments": 6,
+    "has_dialogs": true
+  }
+}

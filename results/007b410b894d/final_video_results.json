@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "final_video_file": "results\\007b410b894d\\The_Carpenter's_Legacy_1757254605_4ec8b1a1.mp4",
+  "filename": "The_Carpenter's_Legacy_1757254605_4ec8b1a1.mp4",
+  "duration_seconds": 0.0,
+  "file_size": 2982262,
+  "segments_included": 6,
+  "has_title_card": true,
+  "has_end_card": true,
+  "has_transitions": true,
+  "stitching_method": "moviepy"
+}
