@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, render_template_string
 from werkzeug.exceptions import BadRequest, NotFound
 
 # Load environment variables
@@ -23,10 +23,9 @@ from local_functions.local_video_generator import LocalVideoGenerator
 from local_functions.PromptImagesToVideo_pollinations import mindsflow_function as generate_video
 from local_functions.textToSpeech_elevenlabs import mindsflow_function as generate_speech
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
-# Configuration
-AKASH_DEPLOYMENT_URL = os.getenv("AKASH_DEPLOYMENT_URL", "")  # Your Akash deployment URL
+# Configuration - Akash integration removed
 
 # In-memory job storage (use Redis in production)
 active_jobs = {}
@@ -42,32 +41,19 @@ class VideoJob:
         self.result = None
         self.error = None
 
-def call_akash_service(endpoint: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    """Call Akash deployment service"""
-    if not AKASH_DEPLOYMENT_URL:
-        raise Exception("AKASH_DEPLOYMENT_URL not configured")
-    
-    url = f"{AKASH_DEPLOYMENT_URL.rstrip('/')}/{endpoint.lstrip('/')}"
-    
-    headers = {
-        "Content-Type": "application/json"
-    }
-    
-    try:
-        response = requests.post(url, json=data, headers=headers, timeout=60)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        raise Exception(f"Akash service call failed: {e}")
 
 @app.route("/", methods=["GET"])
 def home():
-    return jsonify({
-        "message": "AI Video Generator Backend",
-        "version": "2.0",
-        "frontend": "Available at http://localhost:3001 (Next.js)",
-        "api_docs": "/api"
-    })
+    try:
+        with open('static/index.html', 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        return jsonify({
+            "message": "AI Video Generator Backend",
+            "version": "2.0",
+            "frontend": "Frontend file not found",
+            "api_docs": "/api"
+        })
 
 @app.route("/api", methods=["GET"])
 def api_home():
@@ -75,24 +61,15 @@ def api_home():
         "service": "AI Video Generator Flask App",
         "version": "2.0",
         "status": "running",
-        "akash_configured": bool(AKASH_DEPLOYMENT_URL),
+        "local_mode": True,
         "timestamp": datetime.now().isoformat()
     })
 
 @app.route("/health", methods=["GET"])
 def health():
-    # Test Akash connection
-    akash_status = "unknown"
-    if AKASH_DEPLOYMENT_URL:
-        try:
-            response = requests.get(f"{AKASH_DEPLOYMENT_URL}/health", timeout=10)
-            akash_status = "connected" if response.status_code == 200 else "error"
-        except:
-            akash_status = "unreachable"
-    
     return jsonify({
         "status": "healthy",
-        "akash_deployment": akash_status,
+        "mode": "local",
         "jobs_active": len([j for j in active_jobs.values() if j.status == "processing"]),
         "timestamp": datetime.now().isoformat()
     })
@@ -139,13 +116,13 @@ def process_video_job(job_id: str, data: Dict[str, Any]):
     job = active_jobs[job_id]
     
     try:
-        # Step 1: Generate script using Akash deployment
+        # Step 1: Generate script locally
         job.status = "processing"
-        job.message = "Generating script on Akash..."
+        job.message = "Generating script locally..."
         job.progress = 20
         job.updated_at = datetime.now()
         
-        script_data = generate_script_on_akash(data)
+        script_data = generate_script_local(data)
         
         # Step 2: Generate speech locally  
         job.message = "Generating speech locally..."
@@ -180,33 +157,8 @@ def process_video_job(job_id: str, data: Dict[str, Any]):
         job.message = f"Error: {e}"
         job.updated_at = datetime.now()
 
-def generate_script_on_akash(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate script using Akash deployment"""
-    
-    script_request = {
-        "topic": data["topic"],
-        "style": data.get("style", "informative"),
-        "num_segments": data.get("num_segments", 5),
-        "duration_per_segment": data.get("duration_per_segment", 4.0)
-    }
-    
-    try:
-        result = call_akash_service("generate-script", script_request)
-        
-        if not result.get("success", True):
-            raise Exception(result.get("error", "Script generation failed on Akash"))
-        
-        return result
-        
-    except Exception as e:
-        # Fallback to local script generation if Akash fails
-        print(f"Akash script generation failed: {e}")
-        print("Falling back to local script generation...")
-        
-        return generate_script_local_fallback(data)
-
-def generate_script_local_fallback(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Fallback local script generation"""
+def generate_script_local(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Generate script locally using Gemini"""
     
     try:
         from local_functions.textGeneration_gemini import generate_video_script
@@ -222,11 +174,11 @@ def generate_script_local_fallback(data: Dict[str, Any]) -> Dict[str, Any]:
             "success": True,
             "text": script_data["Text"],
             "sentences": script_data["sentences"],
-            "generated_by": "local_fallback"
+            "generated_by": "local_gemini"
         }
         
     except Exception as e:
-        # Final fallback - simple template
+        # Simple fallback template
         topic = data["topic"]
         segments = data.get("num_segments", 5)
         
@@ -237,7 +189,7 @@ def generate_script_local_fallback(data: Dict[str, Any]) -> Dict[str, Any]:
             sentence = f"This is segment {i+1} about {topic}. We explore the important aspects and provide valuable insights."
             sentences.append({
                 "sentence": sentence,
-                "start_time": i * 40000000,  # Azure time units
+                "start_time": i * 40000000,
                 "end_time": (i+1) * 40000000,
                 "duration": 40000000
             })
@@ -249,6 +201,7 @@ def generate_script_local_fallback(data: Dict[str, Any]) -> Dict[str, Any]:
             "sentences": sentences,
             "generated_by": "simple_fallback"
         }
+
 
 def generate_speech_local(text: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """Generate speech locally using ElevenLabs"""
@@ -411,9 +364,9 @@ def list_jobs():
         "total": len(jobs)
     })
 
-@app.route("/test-akash", methods=["POST"])
-def test_akash():
-    """Test Akash deployment connection"""
+@app.route("/test-local", methods=["POST"])
+def test_local():
+    """Test local script generation"""
     
     try:
         data = request.get_json() or {}
@@ -423,23 +376,23 @@ def test_akash():
             "num_segments": 3
         }
         
-        result = call_akash_service("generate-script", test_data)
+        result = generate_script_local(test_data)
         
         return jsonify({
             "success": True,
-            "akash_response": result,
-            "message": "Akash deployment is working"
+            "local_response": result,
+            "message": "Local script generation is working"
         })
         
     except Exception as e:
         return jsonify({
             "success": False,
             "error": str(e),
-            "message": "Akash deployment test failed"
+            "message": "Local script generation test failed"
         }), 500
 
 if __name__ == "__main__":
     print("Starting AI Video Generator Flask App...")
-    print(f"Akash Deployment: {'Configured' if AKASH_DEPLOYMENT_URL else 'Not Configured'}")
+    print("Local Mode: Script generation using Gemini AI")
     
-    app.run(host="0.0.0.0", port=3000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)
