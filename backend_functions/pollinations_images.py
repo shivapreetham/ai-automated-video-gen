@@ -14,7 +14,7 @@ from PIL import Image
 
 POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt/"
 
-def generate_images(segments: List[Dict], width: int = 1024, height: int = 576, output_dir: str = ".") -> Dict[str, Any]:
+def generate_images(segments: List[Dict], width: int = 1024, height: int = 576, output_dir: str = ".", model: str = 'flux') -> Dict[str, Any]:
     """
     Generate multiple images for script segments
     
@@ -47,7 +47,7 @@ def generate_images(segments: List[Dict], width: int = 1024, height: int = 576, 
         print(f"[IMAGE {segment_num}/{len(segments)}] Generating: {prompt[:50]}...")
         
         try:
-            image_file = generate_single_image(prompt, width, height, output_dir, segment_num)
+            image_file = generate_single_image(prompt, width, height, output_dir, segment_num, model)
             
             if image_file:
                 generated_images.append({
@@ -88,62 +88,105 @@ def generate_images(segments: List[Dict], width: int = 1024, height: int = 576, 
         "success_rate": f"{((len(generated_images) - failed_count) / len(segments)) * 100:.1f}%"
     }
 
-def generate_single_image(prompt: str, width: int, height: int, output_dir: str, segment_num: int) -> str:
-    """Generate a single image using Pollinations API"""
+def generate_single_image(prompt: str, width: int, height: int, output_dir: str, segment_num: int, model: str = 'flux') -> str:
+    """Generate a single image using Pollinations API with model fallback"""
     
-    # Enhance prompt for better quality
-    enhanced_prompt = f"{prompt}, high quality, detailed, professional, 8K resolution"
+    # Generate a unique seed based on prompt, segment number and timestamp
+    import hashlib
+    unique_string = f"{prompt}_{segment_num}_{time.time()}_{uuid.uuid4().hex}_{random.randint(1000000, 9999999)}"
+    seed_hash = hashlib.md5(unique_string.encode()).hexdigest()
+    seed = int(seed_hash[:8], 16)  # Use first 8 hex chars as seed
+    
+    # Ensure seed is in valid range (avoid very small numbers)
+    seed = max(seed, 100000)
+    
+    # Model fallback list
+    model_fallbacks = ['flux', 'flux-realism', 'flux-anime', 'turbo']
+    if model not in model_fallbacks:
+        model = 'flux'
+    
+    # Use clean enhancement approach
+    enhanced_prompt = clean_and_enhance_prompt(prompt)
     encoded_prompt = urllib.parse.quote(enhanced_prompt)
     
-    # Build URL with parameters
-    params = {
-        'width': width,
-        'height': height,
-        'model': 'flux',
-        'seed': random.randint(100000, 999999),
-        'nologo': 'true',
-        'enhance': 'true'
-    }
+    # Try each model in fallback order
+    for model_attempt in model_fallbacks:
+        current_model = model_attempt if model_attempt == model else (model_fallbacks[model_fallbacks.index(model):] + model_fallbacks[:model_fallbacks.index(model)])[model_fallbacks.index(model_attempt)]
+        
+        # Build URL with parameters
+        params = {
+            'width': min(max(width, 512), 1920),
+            'height': min(max(height, 512), 1920), 
+            'model': current_model,
+            'seed': seed + model_fallbacks.index(current_model) * 1000,  # Different seed per model
+            'nologo': 'true',
+            'enhance': 'true' if current_model in ['flux', 'flux-realism'] else 'false',
+            'nofeed': 'true',  # Prevent caching issues
+            'safe': 'true'
+        }
     
-    param_string = "&".join([f"{k}={v}" for k, v in params.items()])
-    full_url = f"{POLLINATIONS_BASE_URL}{encoded_prompt}?{param_string}"
-    
-    # Make request with retries
-    for attempt in range(3):
-        try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
-            
-            response = requests.get(full_url, timeout=30, headers=headers)
-            response.raise_for_status()
-            
-            # Check content type
-            content_type = response.headers.get('content-type', '').lower()
-            if 'image' not in content_type and 'octet-stream' not in content_type:
-                raise Exception(f"Invalid content type: {content_type}")
-            
-            # Save image
-            filename = f"segment_{segment_num:02d}_{uuid.uuid4().hex[:8]}.png"
-            filepath = os.path.join(output_dir, filename)
-            
-            with open(filepath, 'wb') as f:
-                f.write(response.content)
-            
-            # Validate image
-            if validate_image(filepath, width, height):
-                return filepath
-            else:
-                os.remove(filepath)
-                raise Exception("Image validation failed")
+        param_string = "&".join([f"{k}={v}" for k, v in params.items()])
+        full_url = f"{POLLINATIONS_BASE_URL}{encoded_prompt}?{param_string}"
+        
+        print(f"[MODEL] Trying {current_model} with seed {params['seed']}...")
+        
+        # Make request with retries for this model
+        for attempt in range(2):  # Reduced retries per model
+            try:
+                # Randomize user agent to prevent caching
+                user_agents = [
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0'
+                ]
+                headers = {
+                    'User-Agent': random.choice(user_agents),
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                    'X-Request-ID': f"{uuid.uuid4().hex}_{current_model}_{attempt}",
+                    'Accept': 'image/*,*/*;q=0.8'
+                }
                 
-        except Exception as e:
-            if attempt < 2:  # Not the last attempt
-                wait_time = (attempt + 1) * 2
-                print(f"[IMAGE] Attempt {attempt + 1} failed, retrying in {wait_time}s...")
-                time.sleep(wait_time)
-            else:
-                raise e
+                response = requests.get(full_url, timeout=45, headers=headers)
+                response.raise_for_status()
+                
+                # Check content type
+                content_type = response.headers.get('content-type', '').lower()
+                if 'image' not in content_type and 'octet-stream' not in content_type:
+                    raise Exception(f"Invalid content type: {content_type}")
+                
+                # Check content length
+                content_length = len(response.content)
+                if content_length < 1024:  # Less than 1KB
+                    raise Exception(f"Image too small: {content_length} bytes")
+                
+                # Save image
+                filename = f"segment_{segment_num:02d}_{current_model}_{uuid.uuid4().hex[:8]}.png"
+                filepath = os.path.join(output_dir, filename)
+                
+                with open(filepath, 'wb') as f:
+                    f.write(response.content)
+                
+                # Validate image
+                if validate_image(filepath, width, height):
+                    print(f"[SUCCESS] Image generated with {current_model}")
+                    return filepath
+                else:
+                    if os.path.exists(filepath):
+                        os.remove(filepath)
+                    raise Exception("Image validation failed")
+                    
+            except Exception as e:
+                print(f"[WARNING] {current_model} attempt {attempt + 1} failed: {e}")
+                if attempt < 1:  # Not the last attempt for this model
+                    time.sleep(2 + attempt)
+                continue
+        
+        print(f"[FAILED] Model {current_model} failed after all attempts")
+    
+    # All models failed, raise final exception
+    raise Exception(f"All models failed for segment {segment_num}")
 
 def validate_image(filepath: str, target_width: int, target_height: int) -> bool:
     """Validate generated image"""
@@ -161,6 +204,66 @@ def validate_image(filepath: str, target_width: int, target_height: int) -> bool
         return True
     except:
         return False
+
+def clean_overly_complex_prompt(prompt: str) -> str:
+    """Clean up overly complex prompts that confuse the AI"""
+    
+    # Remove excessive whitespace and normalize
+    clean_prompt = ' '.join(prompt.split())
+    
+    # Remove duplicate phrases (common issue)
+    parts = [part.strip() for part in clean_prompt.split(',')]
+    seen = set()
+    unique_parts = []
+    
+    for part in parts:
+        part_lower = part.lower()
+        if part_lower not in seen and part.strip():
+            seen.add(part_lower)
+            unique_parts.append(part.strip())
+    
+    # Limit to most important parts (first 4-5 concepts)
+    if len(unique_parts) > 5:
+        # Keep the main subject (first part) and most important modifiers
+        main_subject = unique_parts[0]
+        important_modifiers = [part for part in unique_parts[1:] if any(key in part.lower() for key in 
+                             ['lighting', 'shot', 'view', 'close-up', 'wide', 'medium'])][:2]
+        quality_terms = [part for part in unique_parts[1:] if any(key in part.lower() for key in 
+                        ['quality', 'professional', 'detailed', 'resolution'])][:1]
+        
+        unique_parts = [main_subject] + important_modifiers + quality_terms
+    
+    return ', '.join(unique_parts)
+
+def clean_and_enhance_prompt(prompt: str) -> str:
+    """Simple, clean prompt enhancement without over-complication"""
+    
+    # First clean up overly complex prompts
+    clean_prompt = clean_overly_complex_prompt(prompt)
+    
+    # Check if already has quality descriptors
+    prompt_lower = clean_prompt.lower()
+    has_quality = any(word in prompt_lower for word in 
+                     ['professional', 'quality', 'detailed', 'resolution', '4k', '8k', 'hd'])
+    has_lighting = any(word in prompt_lower for word in 
+                      ['lighting', 'light', 'illuminated', 'glow', 'bright', 'dark'])
+    
+    enhancements = []
+    
+    # Add minimal quality enhancement if needed
+    if not has_quality:
+        enhancements.append("high quality")
+    
+    # Add simple lighting if needed  
+    if not has_lighting and len(clean_prompt.split(',')) < 4:  # Only if prompt isn't already complex
+        simple_lighting = ["natural lighting", "good lighting", "cinematic lighting"]
+        enhancements.append(random.choice(simple_lighting))
+    
+    # Combine cleanly
+    if enhancements:
+        return f"{clean_prompt}, {', '.join(enhancements)}"
+    else:
+        return clean_prompt
 
 def create_fallback_image(prompt: str, width: int, height: int, output_dir: str, segment_num: int) -> str:
     """Create a fallback image if generation fails"""

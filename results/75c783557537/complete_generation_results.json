@@ -1,0 +1,112 @@
+{
+  "generation_id": "75c783557537",
+  "topic": "indian mythology about teacher and student",
+  "parameters": {
+    "script_length": "medium",
+    "voice": "alloy",
+    "width": 1024,
+    "height": 576,
+    "fps": 24,
+    "img_style_prompt": "cinematic, professional",
+    "include_dialogs": true,
+    "use_different_voices": true,
+    "add_captions": true,
+    "add_title_card": true,
+    "add_end_card": true
+  },
+  "output_dir": "results\\75c783557537",
+  "started_at": "2025-09-07T21:45:07.814130",
+  "stages": {
+    "script_generation": {
+      "success": true,
+      "duration": 13.587527990341187,
+      "script_file": "results\\75c783557537\\story_script.json",
+      "story_title": "The Rishi's Gift",
+      "segments_count": 6,
+      "estimated_duration": 78.5,
+      "has_dialogs": true,
+      "character_count": 3
+    },
+    "audio_generation": {
+      "success": true,
+      "duration": 14.261074304580688,
+      "results_file": "results\\75c783557537\\audio_results.json",
+      "segments_generated": 6,
+      "segments_failed": 0,
+      "total_duration": 38.4,
+      "total_file_size": 614400,
+      "character_voices": {
+        "narrator": "alloy",
+        "Arjun": "nova",
+        "Rishi Vishwamitra": "echo",
+        "Devi Saraswati": "fable"
+      }
+    },
+    "image_generation": {
+      "success": true,
+      "duration": 39.478073835372925,
+      "results_file": "results\\75c783557537\\image_results.json",
+      "images_generated": 6,
+      "images_failed": 0,
+      "total_file_size": 326911
+    },
+    "segment_video_creation": {
+      "success": true,
+      "duration": 26.164289712905884,
+      "results_file": "results\\75c783557537\\segment_video_results.json",
+      "videos_created": 6,
+      "videos_failed": 0,
+      "total_duration": 0.0,
+      "total_file_size": 1843739
+    },
+    "final_video_stitching": {
+      "success": true,
+      "duration": 59.85541844367981,
+      "results_file": "results\\75c783557537\\final_video_results.json",
+      "final_video_file": "results\\75c783557537\\The_Rishi's_Gift_1757261801_29f5cc6a.mp4",
+      "filename": "The_Rishi's_Gift_1757261801_29f5cc6a.mp4",
+      "duration_seconds": 0.0,
+      "file_size": 2048353,
+      "segments_included": 6,
+      "captions_added": false,
+      "has_title_card": true,
+      "has_end_card": true
+    }
+  },
+  "success": true,
+  "error": null,
+  "completed_at": "2025-09-07T21:47:41.163659",
+  "total_generation_time": 153.35284662246704,
+  "final_video": {
+    "file_path": "results\\75c783557537\\The_Rishi's_Gift_1757261801_29f5cc6a.mp4",
+    "filename": "The_Rishi's_Gift_1757261801_29f5cc6a.mp4",
+    "duration_seconds": 0.0,
+    "file_size_mb": 1.9534616470336914,
+    "width": 1024,
+    "height": 576,
+    "fps": 24
+  },
+  "story_info": {
+    "title": "The Rishi's Gift",
+    "summary": "A young, ambitious student pushes his wise guru to his limits, only to discover the true nature of knowledge and self-discovery. Their bond transcends the boundaries of teacher and student, forming a powerful connection across lifetimes.",
+    "characters": [
+      {
+        "name": "Arjun",
+        "description": "A determined, yet sometimes arrogant, young man eager to master mystical powers.",
+        "role": "protagonist"
+      },
+      {
+        "name": "Rishi Vishwamitra",
+        "description": "A wise and patient guru, possessing immense spiritual power.",
+        "role": "supporting"
+      },
+      {
+        "name": "Devi Saraswati",
+        "description": "The goddess of knowledge, wisdom, and music, appearing as a guiding vision.",
+        "role": "supporting"
+      }
+    ],
+    "total_segments": 6,
+    "has_dialogs": true
+  }
+}

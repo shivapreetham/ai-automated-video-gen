@@ -1,0 +1,101 @@
+{
+  "success": true,
+  "segments_generated": 6,
+  "segments_failed": 0,
+  "total_segments": 6,
+  "audio_files": [
+    {
+      "success": true,
+      "audio_file": "results\\75c783557537\\segment_01_20250907214521_e6782b4f.mp3",
+      "filename": "segment_01_20250907214521_e6782b4f.mp3",
+      "duration_seconds": 6.528,
+      "file_size": 104448,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 166,
+      "word_count": 25,
+      "segment_number": 1
+    },
+    {
+      "success": true,
+      "audio_file": "results\\75c783557537\\segment_02_20250907214521_129337c7.mp3",
+      "filename": "segment_02_20250907214521_129337c7.mp3",
+      "duration_seconds": 8.508,
+      "file_size": 136128,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 188,
+      "word_count": 30,
+      "segment_number": 2
+    },
+    {
+      "success": true,
+      "audio_file": "results\\75c783557537\\segment_03_20250907214521_b9b229c1.mp3",
+      "filename": "segment_03_20250907214521_b9b229c1.mp3",
+      "duration_seconds": 4.956,
+      "file_size": 79296,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 127,
+      "word_count": 18,
+      "segment_number": 3
+    },
+    {
+      "success": true,
+      "audio_file": "results\\75c783557537\\segment_04_20250907214527_88e2f990.mp3",
+      "filename": "segment_04_20250907214527_88e2f990.mp3",
+      "duration_seconds": 8.844,
+      "file_size": 141504,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 200,
+      "word_count": 33,
+      "segment_number": 4
+    },
+    {
+      "success": true,
+      "audio_file": "results\\75c783557537\\segment_05_20250907214528_531712f5.mp3",
+      "filename": "segment_05_20250907214528_531712f5.mp3",
+      "duration_seconds": 5.784,
+      "file_size": 92544,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 141,
+      "word_count": 19,
+      "segment_number": 5
+    },
+    {
+      "success": true,
+      "audio_file": "results\\75c783557537\\segment_06_20250907214531_9e24f47d.mp3",
+      "filename": "segment_06_20250907214531_9e24f47d.mp3",
+      "duration_seconds": 3.78,
+      "file_size": 60480,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 87,
+      "word_count": 14,
+      "segment_number": 6
+    }
+  ],
+  "total_duration": 38.4,
+  "total_file_size": 614400,
+  "character_voices": {
+    "narrator": "alloy",
+    "Arjun": "nova",
+    "Rishi Vishwamitra": "echo",
+    "Devi Saraswati": "fable"
+  },
+  "generation_method": "elevenlabs_segments"
+}

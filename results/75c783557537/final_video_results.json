@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "final_video_file": "results\\75c783557537\\The_Rishi's_Gift_1757261801_29f5cc6a.mp4",
+  "filename": "The_Rishi's_Gift_1757261801_29f5cc6a.mp4",
+  "duration_seconds": 0.0,
+  "file_size": 2048353,
+  "segments_included": 6,
+  "has_title_card": true,
+  "has_end_card": true,
+  "has_transitions": true,
+  "stitching_method": "moviepy"
+}

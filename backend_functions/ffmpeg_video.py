@@ -99,6 +99,23 @@ def create_video_with_moviepy(images: List[Dict], audio_file: str, video_path: s
                 # Resize to match target dimensions
                 clip = clip.resize((width, height))
                 
+                # Add subtle zoom effect (Ken Burns effect) - simple and fast
+                try:
+                    # Simple zoom using MoviePy's resize function with time-based scaling
+                    def make_zoom(clip_duration):
+                        # Zoom from 100% to 110% over the clip duration
+                        def zoom_func(t):
+                            zoom_factor = 1.0 + 0.1 * (t / clip_duration)  # 1.0 to 1.1
+                            return zoom_factor
+                        return zoom_func
+                    
+                    zoom_function = make_zoom(duration_per_image)
+                    clip = clip.resize(lambda t: zoom_function(t))
+                    
+                except Exception as zoom_error:
+                    print(f"[WARNING] Zoom effect failed: {zoom_error}, using original clip")
+                    # Continue without zoom if it fails
+                
                 # Add transitions if available
                 if TRANSITIONS_AVAILABLE and len(images) > 1:
                     if i == 0:
@@ -166,11 +183,15 @@ def create_video_with_moviepy(images: List[Dict], audio_file: str, video_path: s
             video_path,
             codec='libx264',
             audio_codec='aac',
-            fps=fps,
+            fps=min(fps, 24),  # Cap FPS for faster encoding
             temp_audiofile=temp_audio_path,
             remove_temp=True,
             verbose=False,
-            logger=None
+            logger=None,
+            # Speed optimizations
+            preset='ultrafast',  # Fastest H.264 preset
+            threads=4,           # Use multiple CPU cores
+            bitrate='2000k'      # Good quality but fast encoding
         )
         
         # Cleanup clips

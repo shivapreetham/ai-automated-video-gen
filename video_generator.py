@@ -76,9 +76,12 @@ def generate_video_complete(job_id: str, topic: str, width: int = 1024, height: 
         print(f"   Duration: {audio_duration:.1f}s")
         print(f"   File size: {audio_result['file_size']/1024:.1f} KB")
         
-        # Step 3: Generate Images
+        # Step 3: Generate Images  
         print(f"\\nSTEP 3: Generating {len(segments)} images with Pollinations...")
-        images_result = generate_images(segments, width, height, job_dir)
+        # Use turbo for speed (under 1 minute target) or flux-realism for quality
+        model_choice = 'turbo' if len(segments) > 3 else 'flux-realism'
+        print(f"   Using model: {model_choice} (optimized for {'speed' if model_choice == 'turbo' else 'quality'})")
+        images_result = generate_images(segments, width, height, job_dir, model=model_choice)
         
         if not images_result.get("success"):
             raise VideoGenerationError("Image generation completely failed")

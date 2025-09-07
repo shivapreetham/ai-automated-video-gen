@@ -12,8 +12,8 @@ from typing import Dict, List, Any, Optional
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
-# Pollinations API configuration
-POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt"
+# Pollinations API configuration (use path-based prompt like tests)
+POLLINATIONS_BASE_URL = "https://image.pollinations.ai/prompt/"
 
 def generate_segment_images(script_data: Dict[str, Any], output_dir: str = ".", 
                           img_style_prompt: str = "cinematic, professional") -> Dict[str, Any]:
@@ -113,14 +113,9 @@ def generate_single_image(segment: Dict[str, Any], image_spec: Dict[str, Any],
     if not image_prompt:
         return {"success": False, "error": "Empty image prompt"}
     
-    # Enhance prompt with context
-    enhanced_prompt = enhance_image_prompt(
-        image_prompt, 
-        style_prompt, 
-        visual_theme, 
-        segment.get("emotional_tone", "neutral"),
-        segment.get("segment_type", "narrative")
-    )
+    # Clean and simply enhance the prompt to avoid over-complexity
+    from .pollinations_images import clean_and_enhance_prompt
+    enhanced_prompt = clean_and_enhance_prompt(image_prompt)
     
     # Generate filename
     timestamp = int(time.time())
@@ -130,40 +125,98 @@ def generate_single_image(segment: Dict[str, Any], image_spec: Dict[str, Any],
     try:
         # Make request to Pollinations
         print(f"[IMAGE {segment_number}-{image_number}] Generating: {enhanced_prompt[:100]}...")
-        
-        response = requests.get(
-            POLLINATIONS_BASE_URL,
-            params={
-                "prompt": enhanced_prompt,
-                "width": 1024,
-                "height": 576,
-                "seed": -1,  # Random seed
-                "model": "flux",
-                "enhance": "true"
-            },
-            timeout=60,
-            stream=True
-        )
-        
-        if response.status_code != 200:
-            return {"success": False, "error": f"HTTP {response.status_code}: {response.text}"}
-        
-        # Save image
+
+        import random
+        import hashlib
+        import urllib.parse
+
+        # Generate unique seed for each image
+        unique_string = f"{enhanced_prompt}_{segment_number}_{image_number}_{time.time()}_{uuid.uuid4().hex}"
+        seed_hash = hashlib.md5(unique_string.encode()).hexdigest()
+        unique_seed = int(seed_hash[:8], 16)
+
+        # Model fallback list (aligned with tests and other module)
+        models_to_try = ['flux', 'flux-realism', 'flux-anime', 'turbo']
+
+        # Encode prompt into path (Pollinations expects path-based prompt)
+        encoded_prompt = urllib.parse.quote(enhanced_prompt)
+
+        response = None
+        last_error = None
+        for model_attempt in models_to_try:
+            try:
+                print(f"[IMAGE {segment_number}-{image_number}] Trying model: {model_attempt}")
+
+                params = {
+                    "width": 1024,
+                    "height": 576,
+                    "seed": unique_seed + models_to_try.index(model_attempt) * 1000,
+                    "model": model_attempt,
+                    "enhance": "true" if model_attempt in ['flux', 'flux-realism'] else "false",
+                    "nologo": "true",
+                    "nofeed": "true",
+                    "safe": "true"
+                }
+
+                param_string = "&".join([f"{k}={v}" for k, v in params.items()])
+                full_url = f"{POLLINATIONS_BASE_URL}{encoded_prompt}?{param_string}"
+
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Cache-Control': 'no-cache',
+                    'X-Request-ID': f"{uuid.uuid4().hex}_{model_attempt}",
+                    'Accept': 'image/*,*/*;q=0.8'
+                }
+
+                response = requests.get(full_url, timeout=60, headers=headers)
+
+                if response.status_code != 200:
+                    last_error = f"HTTP {response.status_code}"
+                    print(f"[IMAGE {segment_number}-{image_number}] {model_attempt} failed: {last_error}")
+                    continue
+
+                # Validate response content
+                content_type = response.headers.get('content-type', '').lower()
+                if 'image' not in content_type and 'octet-stream' not in content_type:
+                    last_error = f"Invalid content type: {content_type}"
+                    print(f"[IMAGE {segment_number}-{image_number}] {model_attempt} failed: {last_error}")
+                    continue
+
+                content_length = len(response.content)
+                if content_length < 1024:
+                    last_error = f"Image too small: {content_length} bytes"
+                    print(f"[IMAGE {segment_number}-{image_number}] {model_attempt} failed: {last_error}")
+                    continue
+
+                # If we got here, we have a valid response
+                print(f"[IMAGE {segment_number}-{image_number}] Success with {model_attempt}")
+                break
+
+            except Exception as e:
+                last_error = str(e)
+                print(f"[IMAGE {segment_number}-{image_number}] {model_attempt} error: {last_error}")
+                continue
+
+        # If no successful response
+        if not response or response.status_code != 200:
+            return {"success": False, "error": f"All models failed. Last error: {last_error or 'unknown'}"}
+
+        # Save image (use .png for consistency)
+        filename = f'seg_{segment_number:02d}_img_{image_number:02d}_{timestamp}_{uuid.uuid4().hex[:8]}.png'
+        filepath = os.path.join(output_dir, filename)
         with open(filepath, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-        
+            f.write(response.content)
+
         # Verify image was saved
         if not os.path.exists(filepath):
             return {"success": False, "error": "Image file was not created"}
-        
+
         file_size = os.path.getsize(filepath)
         if file_size < 1000:  # Less than 1KB likely means error
             return {"success": False, "error": f"Generated image too small ({file_size} bytes)"}
-        
+
         print(f"[IMAGE {segment_number}-{image_number}] Generated: {filename} ({file_size/1024:.1f} KB)")
-        
+
         return {
             "success": True,
             "image_file": filepath,
@@ -177,7 +230,7 @@ def generate_single_image(segment: Dict[str, Any], image_spec: Dict[str, Any],
             "visual_focus": image_spec.get("visual_focus", ""),
             "generation_time": time.time() - timestamp
         }
-        
+
     except requests.exceptions.RequestException as e:
         return {"success": False, "error": f"Network error: {e}"}
     except Exception as e:
@@ -185,54 +238,50 @@ def generate_single_image(segment: Dict[str, Any], image_spec: Dict[str, Any],
 
 def enhance_image_prompt(base_prompt: str, style_prompt: str, visual_theme: str, 
                         emotional_tone: str, segment_type: str) -> str:
-    """Enhance image prompt with additional context and style"""
+    """Enhance image prompt with additional context and style, avoiding over-enhancement"""
     
-    # Emotional tone modifiers
+    # Start with clean base prompt
+    enhanced_prompt = base_prompt.strip()
+    
+    # Check if prompt already contains style elements to avoid duplication
+    prompt_lower = enhanced_prompt.lower()
+    
+    # Only add emotional tone if not already present
     tone_modifiers = {
-        "happy": "bright, joyful, warm lighting, vibrant colors",
-        "sad": "soft lighting, muted colors, melancholy atmosphere", 
-        "excited": "dynamic, energetic, bright colors, motion blur",
-        "suspenseful": "dramatic lighting, shadows, tense atmosphere",
-        "peaceful": "serene, calm, soft lighting, harmonious colors",
-        "dramatic": "high contrast, cinematic lighting, intense mood",
-        "neutral": "balanced lighting, natural colors"
+        "happy": "bright, joyful lighting",
+        "sad": "soft, melancholy lighting", 
+        "excited": "dynamic, energetic",
+        "suspenseful": "dramatic shadows",
+        "peaceful": "serene, calm lighting",
+        "dramatic": "high contrast lighting",
+        "romantic": "soft, warm lighting",
+        "anger": "harsh, dramatic lighting",
+        "defiance": "bold, determined lighting",
+        "tragic": "dark, somber mood",
+        "despair": "muted, sorrowful atmosphere"
     }
     
-    # Segment type modifiers
-    type_modifiers = {
-        "narrative": "wide shot, establishing scene, detailed environment",
-        "dialog": "medium shot, character focus, expressive lighting",
-        "mixed": "dynamic composition, balanced framing"
-    }
+    # Add emotional tone only if not already described
+    if emotional_tone in tone_modifiers and not any(word in prompt_lower for word in ["lighting", "mood", "atmosphere"]):
+        enhanced_prompt += f", {tone_modifiers[emotional_tone]}"
     
-    # Build enhanced prompt
-    prompt_parts = [base_prompt]
+    # Add minimal technical quality only if not already present
+    if not any(word in prompt_lower for word in ["quality", "detailed", "professional", "resolution"]):
+        enhanced_prompt += ", high quality, detailed"
     
-    # Add visual theme
-    if visual_theme:
-        prompt_parts.append(visual_theme)
+    # Avoid adding style_prompt if it's already in base_prompt or if it would create duplicates
+    if style_prompt and style_prompt.lower() not in prompt_lower:
+        # Check for duplicates before adding
+        style_parts = [part.strip() for part in style_prompt.split(',')]
+        unique_parts = []
+        for part in style_parts:
+            if part.lower() not in prompt_lower and part not in unique_parts:
+                unique_parts.append(part)
+        
+        if unique_parts:
+            enhanced_prompt += f", {', '.join(unique_parts)}"
     
-    # Add style prompt
-    if style_prompt:
-        prompt_parts.append(style_prompt)
-    
-    # Add emotional tone modifier
-    if emotional_tone in tone_modifiers:
-        prompt_parts.append(tone_modifiers[emotional_tone])
-    
-    # Add segment type modifier
-    if segment_type in type_modifiers:
-        prompt_parts.append(type_modifiers[segment_type])
-    
-    # Add technical quality markers
-    prompt_parts.extend([
-        "high quality",
-        "detailed",
-        "4k resolution",
-        "professional photography"
-    ])
-    
-    return ", ".join(prompt_parts)
+    return enhanced_prompt
 
 def group_images_by_segment(segments: List[Dict[str, Any]], 
                            image_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
