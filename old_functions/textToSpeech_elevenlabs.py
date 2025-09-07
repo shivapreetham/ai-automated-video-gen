@@ -77,10 +77,17 @@ def generate_audio(text: str, lang: str = 'en', voice_speed: float = 1.0, speake
     if not text or not text.strip():
         raise ElevenLabsError("Text cannot be empty")
     
-    # Generate unique filename
+    # Generate unique filename with optional output directory
     current_time = datetime.datetime.now()
     timestamp = current_time.strftime("%Y%m%d%H%M%S")
-    filename = f'elevenlabs_audio_{timestamp}.mp3'
+    base_filename = f'elevenlabs_audio_{timestamp}.mp3'
+    
+    # Check if output directory is provided (for organized storage)
+    output_dir = os.environ.get('ELEVENLABS_OUTPUT_DIR', None)
+    if output_dir and os.path.exists(output_dir):
+        filename = os.path.join(output_dir, base_filename)
+    else:
+        filename = base_filename
     
     try:
         # Select voice
@@ -213,12 +220,17 @@ def mindsflow_function(event, context) -> dict:
         voice_speed = event.get("voice_speed", 1.0)
         speaker = event.get("speaker", None)
         output_format = event.get("format", "mp3")  # mp3 or wav
+        output_dir = event.get("output_dir", None)  # For organized storage
         
         if not text:
             return {
                 'success': False,
                 'error': 'Text parameter is required'
             }
+        
+        # Set output directory if provided
+        if output_dir:
+            os.environ['ELEVENLABS_OUTPUT_DIR'] = output_dir
         
         # Generate audio
         filename, duration = generate_audio(text, lang, voice_speed, speaker)

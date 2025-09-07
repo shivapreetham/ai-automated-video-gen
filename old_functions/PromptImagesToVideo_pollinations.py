@@ -152,7 +152,7 @@ def crop_image(image_path, new_width, new_height):
     img = img.crop((left, top, right, bottom))
     img.save(image_path)
 
-def generate_image_pollinations(prompt: str, width: int=1024, height: int=1024, model: str='flux', negative_prompt: str='') -> str:
+def generate_image_pollinations(prompt: str, width: int=1024, height: int=1024, model: str='flux', negative_prompt: str='', temp_dir: str='.') -> str:
     """
     Enhanced image generation using Pollinations AI (free)
     
@@ -211,8 +211,12 @@ def generate_image_pollinations(prompt: str, width: int=1024, height: int=1024, 
             if not any(img_type in content_type for img_type in ['image/', 'application/octet-stream']):
                 raise ValueError(f"Invalid content type: {content_type}")
             
-            # Save and validate image
+            # Save and validate image in temp directory
             temp_filename = f"temp_pollinations_{uuid.uuid4().hex[:8]}.png"
+            # Use provided temp directory
+            if temp_dir and temp_dir != '.' and os.path.exists(temp_dir):
+                temp_filename = os.path.join(temp_dir, os.path.basename(temp_filename))
+            
             with open(temp_filename, 'wb') as f:
                 f.write(response.content)
             
@@ -238,9 +242,9 @@ def generate_image_pollinations(prompt: str, width: int=1024, height: int=1024, 
             time.sleep(delay)
     
     print("[ERROR] All generation attempts failed, creating fallback image")
-    return create_fallback_image(prompt, width, height)
+    return create_fallback_image(prompt, width, height, temp_dir)
 
-def create_fallback_image(prompt: str, width: int, height: int) -> str:
+def create_fallback_image(prompt: str, width: int, height: int, temp_dir: str='.') -> str:
     """
     Create a simple fallback image if generation fails
     """
@@ -269,7 +273,11 @@ def create_fallback_image(prompt: str, width: int, height: int) -> str:
     
     draw.text((x, y), text, fill="white", font=font)
     
+    # Save fallback image in temp directory
     filename = f"fallback_{uuid.uuid4().hex[:8]}.png"
+    if temp_dir and temp_dir != '.' and os.path.exists(temp_dir):
+        filename = os.path.join(temp_dir, os.path.basename(filename))
+    
     img.save(filename)
     return filename
 
@@ -626,8 +634,16 @@ def concatenate_images_local(event):
     if len(img_prompts) > 0:
         print(f"   • Sample prompt: {img_prompts[0][:80]}...")
     
-    # Initialize tracking variables
-    video_path = os.path.abspath(f'enhanced_video_{uuid.uuid4().hex[:8]}.mp4')
+    # Initialize tracking variables with organized output
+    output_dir = event.get("output_dir", ".")  # Use provided output directory or current dir
+    temp_dir = event.get("temp_dir", ".")      # Use provided temp directory or current dir
+    
+    # Set environment variable for temp directory
+    os.environ['POLLINATIONS_TEMP_DIR'] = temp_dir
+    
+    video_filename = f'enhanced_video_{uuid.uuid4().hex[:8]}.mp4'
+    video_path = os.path.abspath(os.path.join(output_dir, video_filename))
+    
     frames_url = []
     video_clips = []
     successful_generations = 0
@@ -644,12 +660,12 @@ def concatenate_images_local(event):
             try:
                 if crop_method not in ['resize', 'crop_center']:
                     img_path = generate_image_pollinations(
-                        img_prompts[i], width, height, model, negative_prompt
+                        img_prompts[i], width, height, model, negative_prompt, temp_dir
                     )
                 else:
                     # Generate at higher resolution for better quality after cropping
                     img_path = generate_image_pollinations(
-                        img_prompts[i], 1536, 1536, model, negative_prompt
+                        img_prompts[i], 1536, 1536, model, negative_prompt, temp_dir
                     )
                 
                 if not img_path or not os.path.exists(img_path):
@@ -663,7 +679,7 @@ def concatenate_images_local(event):
                 
                 # Create fallback image
                 print("Creating fallback image...")
-                img_path = create_fallback_image(img_prompts[i], width, height)
+                img_path = create_fallback_image(img_prompts[i], width, height, temp_dir)
             
             # Process image (crop/resize) with error handling
             try:
@@ -754,9 +770,10 @@ def concatenate_images_local(event):
         if transition_time == 0 or transition_time == 0.:
             print("Rendering video without transitions...")
             print(f"[DEBUG] About to write video to: {video_path}")
+            temp_audio_path = os.path.join(temp_dir, 'temp-audio.m4a')
             video_clip.write_videofile(
                 video_path, fps=fps,
-                temp_audiofile='temp-audio.m4a',
+                temp_audiofile=temp_audio_path,
                 remove_temp=True
             )
             
@@ -781,9 +798,10 @@ def concatenate_images_local(event):
             # Handle video with transitions (or default case)
             print("Rendering video with transitions...")
             print(f"[DEBUG] About to write video to: {video_path}")
+            temp_audio_path = os.path.join(temp_dir, 'temp-audio-transitions.m4a')
             video_clip.write_videofile(
                 video_path, fps=fps,
-                temp_audiofile='temp-audio.m4a',
+                temp_audiofile=temp_audio_path,
                 remove_temp=True
             )
         
