@@ -1,0 +1,206 @@
+{
+  "success": true,
+  "images_generated": 5,
+  "images_failed": 0,
+  "total_images_requested": 5,
+  "segments_with_images": [
+    {
+      "segment_number": 1,
+      "segment_text": "A bright summer afternoon.  Whiskers the cat, sleek and playful, watches Buddy the golden retriever puppy bound through the backyard, a bright red balloon tied to his collar.",
+      "segment_type": "narrative",
+      "emotional_tone": "happy",
+      "duration_seconds": 15.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\a836e9ef5442\\segment_01_1757276482_3daa090d.png",
+          "filename": "segment_01_1757276482_3daa090d.png",
+          "file_size": 133040,
+          "original_prompt": "Wide shot of a sunny backyard; lush green grass, vibrant flowers, a playful golden retriever puppy chasing a bright red balloon, a ginger cat watching from a sunny patch., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "enhanced_prompt": "Wide shot of a sunny backyard; lush green grass, vibrant flowers, a playful golden retriever puppy chasing a bright red balloon, a ginger cat watching from a sunny patch., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "image_duration": 15.5,
+          "segment_duration": 15.5,
+          "generation_time": 6.759359121322632,
+          "segment_number": 1,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 2,
+      "segment_text": "Buddy: (excited barks)  Woof!  Got it!  Woof!",
+      "segment_type": "dialog",
+      "emotional_tone": "happy",
+      "duration_seconds": 5.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\a836e9ef5442\\segment_02_1757276488_989452a8.png",
+          "filename": "segment_02_1757276488_989452a8.png",
+          "file_size": 48799,
+          "original_prompt": "Close-up shot of Buddy, tongue lolling, the red balloon bobbing slightly, a look of pure joy on his face., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "enhanced_prompt": "Close-up shot of Buddy, tongue lolling, the red balloon bobbing slightly, a look of pure joy on his face., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "image_duration": 5.0,
+          "segment_duration": 5.0,
+          "generation_time": 6.554640054702759,
+          "segment_number": 2,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 3,
+      "segment_text": "Suddenly, a gust of wind catches the balloon. It rises, pulling Buddy along, a small, frantic figure running after it.",
+      "segment_type": "narrative",
+      "emotional_tone": "suspenseful",
+      "duration_seconds": 11.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\a836e9ef5442\\segment_03_1757276494_95bc1da9.png",
+          "filename": "segment_03_1757276494_95bc1da9.png",
+          "file_size": 46802,
+          "original_prompt": "Dynamic shot of Buddy running full speed, the red balloon soaring into the sky, Whiskers watching with growing concern., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "enhanced_prompt": "Dynamic shot of Buddy running full speed, the red balloon soaring into the sky, Whiskers watching with growing concern., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "image_duration": 11.5,
+          "segment_duration": 11.5,
+          "generation_time": 6.1323933601379395,
+          "segment_number": 3,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 4,
+      "segment_text": "The balloon disappears over the fence.  Whiskers: (a soft meow of concern)  Mrow...",
+      "segment_type": "mixed",
+      "emotional_tone": "sad",
+      "duration_seconds": 8.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\a836e9ef5442\\fallback_segment_04_f2128c2f.png",
+          "filename": "fallback_segment_04_f2128c2f.png",
+          "file_size": 13136,
+          "original_prompt": "Close-up of Whiskers' face, showing concern. A blurry image of the balloon fading into the distance., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "enhanced_prompt": "Close-up of Whiskers' face, showing concern. A blurry image of the balloon fading into the distance., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "image_duration": 5.0,
+          "segment_duration": 5.0,
+          "generation_time": 0.0,
+          "is_fallback": true,
+          "segment_number": 4,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 5,
+      "segment_text": "Buddy: (whimpering)  Woof... (nuzzles Whiskers)",
+      "segment_type": "dialog",
+      "emotional_tone": "sad, then hopeful",
+      "duration_seconds": 4.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\a836e9ef5442\\fallback_segment_05_edd6f5d0.png",
+          "filename": "fallback_segment_05_edd6f5d0.png",
+          "file_size": 12812,
+          "original_prompt": "Buddy nuzzling Whiskers, both looking sadly towards the spot where the balloon disappeared.  Lily kneels beside them, comforting them., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "enhanced_prompt": "Buddy nuzzling Whiskers, both looking sadly towards the spot where the balloon disappeared.  Lily kneels beside them, comforting them., Warm, natural lighting with a focus on emotional expressions., professional quality",
+          "image_duration": 5.0,
+          "segment_duration": 5.0,
+          "generation_time": 0.0,
+          "is_fallback": true,
+          "segment_number": 5,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    }
+  ],
+  "total_file_size": 254589,
+  "image_results": [
+    {
+      "success": true,
+      "image_file": "results\\a836e9ef5442\\segment_01_1757276482_3daa090d.png",
+      "filename": "segment_01_1757276482_3daa090d.png",
+      "file_size": 133040,
+      "original_prompt": "Wide shot of a sunny backyard; lush green grass, vibrant flowers, a playful golden retriever puppy chasing a bright red balloon, a ginger cat watching from a sunny patch., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "enhanced_prompt": "Wide shot of a sunny backyard; lush green grass, vibrant flowers, a playful golden retriever puppy chasing a bright red balloon, a ginger cat watching from a sunny patch., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "image_duration": 15.5,
+      "segment_duration": 15.5,
+      "generation_time": 6.759359121322632,
+      "segment_number": 1,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\a836e9ef5442\\segment_02_1757276488_989452a8.png",
+      "filename": "segment_02_1757276488_989452a8.png",
+      "file_size": 48799,
+      "original_prompt": "Close-up shot of Buddy, tongue lolling, the red balloon bobbing slightly, a look of pure joy on his face., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "enhanced_prompt": "Close-up shot of Buddy, tongue lolling, the red balloon bobbing slightly, a look of pure joy on his face., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "image_duration": 5.0,
+      "segment_duration": 5.0,
+      "generation_time": 6.554640054702759,
+      "segment_number": 2,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\a836e9ef5442\\segment_03_1757276494_95bc1da9.png",
+      "filename": "segment_03_1757276494_95bc1da9.png",
+      "file_size": 46802,
+      "original_prompt": "Dynamic shot of Buddy running full speed, the red balloon soaring into the sky, Whiskers watching with growing concern., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "enhanced_prompt": "Dynamic shot of Buddy running full speed, the red balloon soaring into the sky, Whiskers watching with growing concern., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "image_duration": 11.5,
+      "segment_duration": 11.5,
+      "generation_time": 6.1323933601379395,
+      "segment_number": 3,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\a836e9ef5442\\fallback_segment_04_f2128c2f.png",
+      "filename": "fallback_segment_04_f2128c2f.png",
+      "file_size": 13136,
+      "original_prompt": "Close-up of Whiskers' face, showing concern. A blurry image of the balloon fading into the distance., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "enhanced_prompt": "Close-up of Whiskers' face, showing concern. A blurry image of the balloon fading into the distance., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "image_duration": 5.0,
+      "segment_duration": 5.0,
+      "generation_time": 0.0,
+      "is_fallback": true,
+      "segment_number": 4,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\a836e9ef5442\\fallback_segment_05_edd6f5d0.png",
+      "filename": "fallback_segment_05_edd6f5d0.png",
+      "file_size": 12812,
+      "original_prompt": "Buddy nuzzling Whiskers, both looking sadly towards the spot where the balloon disappeared.  Lily kneels beside them, comforting them., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "enhanced_prompt": "Buddy nuzzling Whiskers, both looking sadly towards the spot where the balloon disappeared.  Lily kneels beside them, comforting them., Warm, natural lighting with a focus on emotional expressions., professional quality",
+      "image_duration": 5.0,
+      "segment_duration": 5.0,
+      "generation_time": 0.0,
+      "is_fallback": true,
+      "segment_number": 5,
+      "image_number": 1
+    }
+  ],
+  "generation_method": "single_image_per_segment"
+}

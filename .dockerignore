@@ -116,8 +116,7 @@ test_*.py
 *_test.py
 run_*.py
 
-# Requirements files (except the one we need)
-requirements.txt
+# Requirements files
 requirements_enhanced.txt
 requirements_agents.txt
 
@@ -126,4 +125,4 @@ requirements_agents.txt
 !backend_functions/
 !integrated_daily_mash_system.py
 !.env
-!requirements_docker.txt
+!requirements.txt

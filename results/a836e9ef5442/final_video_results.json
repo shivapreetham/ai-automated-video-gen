@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "final_video_file": "results\\a836e9ef5442\\The_Lost_Balloon_1757276514_434ce751.mp4",
+  "filename": "The_Lost_Balloon_1757276514_434ce751.mp4",
+  "duration_seconds": 0.0,
+  "file_size": 1117634,
+  "segments_included": 5,
+  "has_title_card": true,
+  "has_end_card": true,
+  "has_transitions": true,
+  "stitching_method": "moviepy"
+}
