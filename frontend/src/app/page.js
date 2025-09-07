@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState('custom'); // 'custom' or 'satirical'
   const [formData, setFormData] = useState({
     topic: '',
     style: 'informative',
@@ -16,6 +17,19 @@ export default function Home() {
     image_model: 'flux'
   });
 
+  const [satiricalData, setSatiricalData] = useState({
+    max_videos: 1,
+    language: 'en',
+    voice_speed: 1.0,
+    width: 1024,
+    height: 576,
+    fps: 24,
+    image_model: 'flux'
+  });
+
+  const [availableContent, setAvailableContent] = useState([]);
+  const [isLoadingContent, setIsLoadingContent] = useState(false);
+  
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -32,6 +46,33 @@ export default function Home() {
       ...prev,
       [name]: type === 'number' ? parseFloat(value) || 0 : value
     }));
+  };
+
+  const handleSatiricalInputChange = (e) => {
+    const { name, value, type } = e.target;
+    setSatiricalData(prev => ({
+      ...prev,
+      [name]: type === 'number' ? parseFloat(value) || 0 : value
+    }));
+  };
+
+  const fetchDailyMashContent = async () => {
+    setIsLoadingContent(true);
+    try {
+      const response = await fetch('http://localhost:8000/fetch-daily-mash-content?limit=5');
+      const data = await response.json();
+      
+      if (data.success) {
+        setAvailableContent(data.content);
+      } else {
+        alert('Failed to fetch satirical content: ' + data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching content:', error);
+      alert('Error fetching satirical content: ' + error.message);
+    } finally {
+      setIsLoadingContent(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -61,6 +102,37 @@ export default function Home() {
         pollJobStatus(data.job_id);
       } else {
         throw new Error(data.error || 'Failed to start video generation');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error: ' + error.message);
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSatiricalSubmit = async (e) => {
+    e.preventDefault();
+
+    setIsGenerating(true);
+    setStatus(null);
+    setJobId(null);
+
+    try {
+      const response = await fetch('http://localhost:8000/generate-satirical-video', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(satiricalData)
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setJobId(data.job_id);
+        pollJobStatus(data.job_id);
+      } else {
+        throw new Error(data.error || 'Failed to start satirical video generation');
       }
     } catch (error) {
       console.error('Error:', error);
@@ -272,6 +344,32 @@ export default function Home() {
         </div>
 
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-2xl p-8">
+          {/* Tab Navigation */}
+          <div className="mb-8">
+            <div className="flex space-x-1 bg-white/5 p-1 rounded-xl">
+              <button
+                onClick={() => setActiveTab('custom')}
+                className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                  activeTab === 'custom'
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg'
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                Custom Video
+              </button>
+              <button
+                onClick={() => setActiveTab('satirical')}
+                className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                  activeTab === 'satirical'
+                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg'
+                    : 'text-gray-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                Satirical News
+              </button>
+            </div>
+          </div>
+
           {/* YouTube User Status */}
           {youtubeUser && (
             <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
@@ -294,7 +392,9 @@ export default function Home() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Custom Video Tab */}
+          {activeTab === 'custom' && (
+            <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Topic */}
               <div className="md:col-span-2">
@@ -490,6 +590,201 @@ export default function Home() {
               </button>
             </div>
           </form>
+          )}
+
+          {/* Satirical News Tab */}
+          {activeTab === 'satirical' && (
+            <div className="space-y-6">
+              {/* Daily Mash Content Preview */}
+              <div className="p-6 bg-orange-500/10 border border-orange-500/20 rounded-xl">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <svg className="w-6 h-6 mr-2 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                  </svg>
+                  The Daily Mash Satirical News
+                </h3>
+                <p className="text-gray-300 mb-4">
+                  Generate videos using real satirical news content from The Daily Mash. 
+                  These videos will have witty, satirical commentary based on current absurd news.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button
+                    onClick={fetchDailyMashContent}
+                    disabled={isLoadingContent}
+                    className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-red-600 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg"
+                  >
+                    {isLoadingContent ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Loading Content...</span>
+                      </div>
+                    ) : (
+                      'Preview Available Content'
+                    )}
+                  </button>
+                </div>
+
+                {/* Available Content Display */}
+                {availableContent.length > 0 && (
+                  <div className="mt-6 space-y-4">
+                    <h4 className="text-lg font-semibold text-white">Available Satirical Articles:</h4>
+                    <div className="grid grid-cols-1 gap-4 max-h-80 overflow-y-auto">
+                      {availableContent.map((item, index) => (
+                        <div key={index} className="p-4 bg-white/5 rounded-xl border border-orange-500/20">
+                          <div className="flex justify-between items-start mb-2">
+                            <h5 className="font-semibold text-white text-sm">{item.title}</h5>
+                            <div className="flex space-x-2">
+                              <span className="px-2 py-1 bg-orange-500/20 text-orange-300 text-xs rounded-full">
+                                {item.humor_type}
+                              </span>
+                              <span className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full">
+                                {item.category}
+                              </span>
+                            </div>
+                          </div>
+                          <p className="text-gray-400 text-sm">{item.preview}</p>
+                          <div className="mt-2 text-xs text-gray-500">
+                            {item.word_count} words
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Satirical Video Settings */}
+              <form onSubmit={handleSatiricalSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Language */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-3">
+                      Language
+                    </label>
+                    <select
+                      name="language"
+                      value={satiricalData.language}
+                      onChange={handleSatiricalInputChange}
+                      className="w-full p-4 bg-white/5 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    >
+                      <option value="en">English</option>
+                      <option value="es">Spanish</option>
+                      <option value="fr">French</option>
+                      <option value="de">German</option>
+                      <option value="it">Italian</option>
+                      <option value="pt">Portuguese</option>
+                    </select>
+                  </div>
+
+                  {/* Voice Speed */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-3">
+                      Voice Speed: {satiricalData.voice_speed}x
+                    </label>
+                    <input
+                      type="range"
+                      name="voice_speed"
+                      value={satiricalData.voice_speed}
+                      onChange={handleSatiricalInputChange}
+                      min="0.5"
+                      max="2.0"
+                      step="0.1"
+                      className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer slider"
+                      style={{
+                        background: `linear-gradient(to right, rgb(249 115 22) 0%, rgb(249 115 22) ${(satiricalData.voice_speed - 0.5) / 1.5 * 100}%, rgb(255 255 255 / 0.1) ${(satiricalData.voice_speed - 0.5) / 1.5 * 100}%, rgb(255 255 255 / 0.1) 100%)`
+                      }}
+                    />
+                  </div>
+
+                  {/* Video Dimensions */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-3">
+                      Width
+                    </label>
+                    <input
+                      type="number"
+                      name="width"
+                      value={satiricalData.width}
+                      onChange={handleSatiricalInputChange}
+                      min="480"
+                      max="1920"
+                      step="16"
+                      className="w-full p-4 bg-white/5 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-3">
+                      Height
+                    </label>
+                    <input
+                      type="number"
+                      name="height"
+                      value={satiricalData.height}
+                      onChange={handleSatiricalInputChange}
+                      min="360"
+                      max="1080"
+                      step="16"
+                      className="w-full p-4 bg-white/5 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    />
+                  </div>
+
+                  {/* FPS */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-3">
+                      FPS
+                    </label>
+                    <select
+                      name="fps"
+                      value={satiricalData.fps}
+                      onChange={handleSatiricalInputChange}
+                      className="w-full p-4 bg-white/5 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    >
+                      <option value={24}>24 FPS</option>
+                      <option value={30}>30 FPS</option>
+                      <option value={60}>60 FPS</option>
+                    </select>
+                  </div>
+
+                  {/* Image Model */}
+                  <div>
+                    <label className="block text-sm font-medium text-white mb-3">
+                      Image Model
+                    </label>
+                    <select
+                      name="image_model"
+                      value={satiricalData.image_model}
+                      onChange={handleSatiricalInputChange}
+                      className="w-full p-4 bg-white/5 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-orange-400 focus:border-orange-400 transition-all duration-200"
+                    >
+                      <option value="flux">Flux</option>
+                      <option value="dall-e">DALL-E</option>
+                      <option value="stable-diffusion">Stable Diffusion</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <div className="flex justify-center mt-8">
+                  <button
+                    type="submit"
+                    disabled={isGenerating}
+                    className="px-12 py-4 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-red-600 disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105 disabled:transform-none shadow-lg"
+                  >
+                    {isGenerating ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Generating Satirical Video...</span>
+                      </div>
+                    ) : (
+                      'Generate Satirical Video'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* Status Display */}
           {status && (

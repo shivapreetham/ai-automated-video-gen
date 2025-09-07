@@ -10,7 +10,7 @@ from typing import Dict, Any, List
 import google.generativeai as genai
 
 # Configure Gemini API
-GEMINI_API_KEY = "AIzaSyB2VLzqQbnSy0KloCMlk4IRXD6L9Qwgc8Y"
+GEMINI_API_KEY = "AIzaSyAk_L6R68hAXep7rYhQbBE87S5wIfoF76o"
 genai.configure(api_key=GEMINI_API_KEY)
 
 def generate_video_script_with_research(

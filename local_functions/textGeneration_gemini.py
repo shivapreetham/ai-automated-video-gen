@@ -10,7 +10,7 @@ from typing import Dict, Any, List
 import google.generativeai as genai
 
 # Configure Gemini API
-GEMINI_API_KEY = "AIzaSyB2VLzqQbnSy0KloCMlk4IRXD6L9Qwgc8Y"
+GEMINI_API_KEY = "AIzaSyAk_L6R68hAXep7rYhQbBE87S5wIfoF76o"
 genai.configure(api_key=GEMINI_API_KEY)
 
 def generate_video_script(topic: str, style: str = "informative", num_segments: int = 5, duration_per_segment: float = 4.0, source_content: str = None, humor_type: str = None) -> Dict[str, Any]:

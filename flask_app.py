@@ -23,6 +23,7 @@ load_dotenv()
 from local_functions.local_video_generator import LocalVideoGenerator
 from local_functions.PromptImagesToVideo_pollinations import mindsflow_function as generate_video
 from local_functions.textToSpeech_elevenlabs import mindsflow_function as generate_speech
+from integrated_daily_mash_system import IntegratedDailyMashSystem
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -261,13 +262,56 @@ def generate_speech_local(text: str, data: Dict[str, Any]) -> Dict[str, Any]:
                     
             except Exception as fallback_error:
                 print(f"[SPEECH] Google TTS fallback failed: {fallback_error}")
-                raise Exception(f"Both ElevenLabs and Google TTS failed. ElevenLabs: {error}, Google: {fallback_error}")
+                print("[SPEECH] Trying final silent audio fallback...")
+                
+                # Create a final fallback with silent audio
+                try:
+                    silent_audio_result = create_silent_audio_fallback(text, data)
+                    print("[SPEECH] Silent audio fallback successful")
+                    return silent_audio_result
+                except Exception as silent_error:
+                    print(f"[SPEECH] Silent audio fallback also failed: {silent_error}")
+                    raise Exception(f"All speech generation methods failed. ElevenLabs: {error}, Google: {fallback_error}, Silent: {silent_error}")
         else:
             # For non-rate-limit errors, don't fall back
             raise Exception(f"ElevenLabs TTS failed: {error}")
     
     print("[SPEECH] ElevenLabs TTS successful")
     return result
+
+def create_silent_audio_fallback(text: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Create a silent audio file as absolute last resort"""
+    
+    import wave
+    import struct
+    
+    # Calculate duration based on text length (approx 150 words per minute)
+    words = len(text.split())
+    duration = max(words / 2.5, 5.0)  # At least 5 seconds
+    
+    # Create silent WAV file
+    sample_rate = 22050
+    num_samples = int(duration * sample_rate)
+    
+    filename = f"silent_audio_{uuid.uuid4().hex[:8]}.wav"
+    
+    with wave.open(filename, 'w') as wav_file:
+        wav_file.setnchannels(1)  # Mono
+        wav_file.setsampwidth(2)  # 16-bit
+        wav_file.setframerate(sample_rate)
+        
+        # Write silent audio (all zeros)
+        for _ in range(num_samples):
+            wav_file.writeframesraw(struct.pack('<h', 0))
+    
+    return {
+        'audio_file': filename,
+        'audio_url': os.path.abspath(filename),
+        'duration': duration,
+        'voice_provider': 'silent_fallback',
+        'success': True,
+        'note': 'Silent audio generated due to TTS failures - video will have no narration'
+    }
 
 def generate_video_local(data: Dict[str, Any], script_data: Dict[str, Any], speech_result: Dict[str, Any]) -> Dict[str, Any]:
     """Generate video locally using existing functions"""
@@ -438,6 +482,302 @@ def test_local():
             "success": False,
             "error": str(e),
             "message": "Local script generation test failed"
+        }), 500
+
+@app.route("/generate-satirical-video", methods=["POST"])
+def generate_satirical_video_endpoint():
+    """Generate video using Daily Mash satirical content"""
+    
+    try:
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        # Create job
+        job_id = str(uuid.uuid4())
+        job = VideoJob(job_id)
+        active_jobs[job_id] = job
+        
+        # Start background processing for satirical content
+        import threading
+        thread = threading.Thread(target=process_satirical_video_job, args=(job_id, data))
+        thread.daemon = True
+        thread.start()
+        
+        return jsonify({
+            "job_id": job_id,
+            "status": "queued",
+            "message": "Satirical video generation started",
+            "content_type": "daily_mash_satirical",
+            "check_status": f"/jobs/{job_id}/status"
+        })
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({"error": f"Server error: {e}"}), 500
+
+def process_satirical_video_job(job_id: str, data: Dict[str, Any]):
+    """Background processing for satirical video generation job"""
+    
+    job = active_jobs[job_id]
+    
+    try:
+        # Step 1: Initialize Daily Mash system and fetch content with retries
+        job.status = "processing"
+        job.message = "Fetching satirical content from The Daily Mash..."
+        job.progress = 10
+        job.updated_at = datetime.now()
+        
+        daily_mash_system = IntegratedDailyMashSystem()
+        
+        # Get number of videos to generate (default to 1)
+        max_videos = data.get("max_videos", 1)
+        
+        # Step 2: Process Daily Mash content to video requests with fallback
+        job.message = "Processing satirical content and generating scripts..."
+        job.progress = 30
+        job.updated_at = datetime.now()
+        
+        video_requests = None
+        retry_count = 0
+        max_retries = 2
+        
+        while retry_count <= max_retries and not video_requests:
+            try:
+                video_requests = daily_mash_system.process_daily_content_to_videos(max_videos=max_videos)
+                if video_requests:
+                    break
+            except Exception as fetch_error:
+                retry_count += 1
+                print(f"[ERROR] Attempt {retry_count} failed: {fetch_error}")
+                if retry_count <= max_retries:
+                    job.message = f"Retrying content fetch (attempt {retry_count})..."
+                    job.updated_at = datetime.now()
+                    import time
+                    time.sleep(2)  # Wait 2 seconds before retry
+        
+        # If still no content, use fallback satirical content
+        if not video_requests:
+            print("[FALLBACK] Using fallback satirical content")
+            job.message = "Using fallback satirical content..."
+            job.updated_at = datetime.now()
+            
+            video_requests = create_fallback_satirical_content(daily_mash_system, max_videos)
+        
+        # Use the first video request
+        selected_request = video_requests[0]
+        script_data = selected_request['script_data']
+        source_content = selected_request['source_content']
+        
+        # Step 3: Generate speech from the satirical script
+        job.message = "Generating speech from satirical script..."
+        job.progress = 50
+        job.updated_at = datetime.now()
+        
+        speech_result = generate_speech_local(script_data["Text"], {
+            "language": data.get("language", "en"),
+            "voice_speed": data.get("voice_speed", 1.0)
+        })
+        
+        # Step 4: Generate video with satirical imagery
+        job.message = "Creating satirical video with AI-generated visuals..."
+        job.progress = 75
+        job.updated_at = datetime.now()
+        
+        # Create enhanced video data with satirical context
+        enhanced_data = {
+            "topic": script_data["title"],
+            "width": data.get("width", 1024),
+            "height": data.get("height", 576), 
+            "fps": data.get("fps", 24),
+            "image_model": data.get("image_model", "flux"),
+            "satirical_context": True,
+            "humor_type": source_content.get("humor_type", "general"),
+            "original_title": source_content.get("title", ""),
+        }
+        
+        video_result = generate_video_local(enhanced_data, script_data, speech_result)
+        
+        # Complete job
+        job.status = "completed"
+        job.progress = 100
+        job.message = "Satirical video generation completed"
+        job.updated_at = datetime.now()
+        job.result = {
+            "video_file": video_result.get("video_file"),
+            "video_url": video_result.get("video_url"),
+            "script_data": script_data,
+            "source_content": {
+                "title": source_content.get("title"),
+                "humor_type": source_content.get("humor_type"),
+                "original_link": source_content.get("link"),
+                "category": source_content.get("category")
+            },
+            "duration": video_result.get("duration", 0),
+            "processing_time": (datetime.now() - job.created_at).total_seconds(),
+            "content_type": "daily_mash_satirical"
+        }
+        
+    except Exception as e:
+        job.status = "failed"
+        job.error = str(e)
+        job.message = f"Satirical video generation error: {e}"
+        job.updated_at = datetime.now()
+
+def create_fallback_satirical_content(daily_mash_system, max_videos=1):
+    """Create fallback satirical content when Daily Mash is unavailable"""
+    
+    fallback_articles = [
+        {
+            "title": "Research reveals checking phone reduces boredom by 3% but increases social anxiety by 94%",
+            "humor_type": "absurdist", 
+            "category": "society",
+            "full_content": "Groundbreaking research from the Institute of Digital Dependency has confirmed what millions suspected: smartphones are terrible at their job. The comprehensive study, involving 10,000 participants staring at screens, found that while phone-checking does technically reduce boredom by a measly 3%, it simultaneously skyrockets social anxiety by an alarming 94%. Dr. Sarah Jenkins, lead researcher and reformed phone addict, explained: 'We discovered that the average person checks their phone hoping for excitement but instead finds three new emails about car insurance and a notification that their screen time was up 47% this week.' The study also revealed that 67% of participants experienced what researchers dubbed 'phantom notification syndrome' - the belief that their phone was buzzing when it wasn't. 'It's like having a needy digital pet that never actually does anything interesting,' Dr. Jenkins noted. The research team recommends replacing phones with more effective boredom-busters, such as staring at walls or having actual conversations with humans.",
+            "link": "https://fallback-satirical-content.com/phone-research",
+            "published": datetime.now().strftime('%a, %d %b %Y %H:%M:%S %z'),
+            "word_count": 180,
+            "video_ready": True,
+            "scraped_at": datetime.now().isoformat()
+        },
+        {
+            "title": "Scientists discover exact moment when small talk becomes unbearably awkward",
+            "humor_type": "social_satire",
+            "category": "society", 
+            "full_content": "After years of painstaking research, scientists at the University of Social Disasters have pinpointed the precise moment when pleasant small talk transforms into excruciating awkwardness. According to their findings, published in the Journal of Uncomfortable Interactions, the critical threshold occurs exactly 47 seconds after someone mentions the weather. Professor Michael Thompson, who has dedicated his career to studying social catastrophes, explains: 'Once you've exhausted 'nice weather today' and 'at least it's not raining,' you enter what we call the Awkward Zone. This is where desperate humans start discussing their commute to work or, God forbid, their weekend plans.' The study observed 5,000 conversations and found that 89% devolved into painful silence or frantic phone-checking within 2.3 minutes. The most dangerous small talk topics, ranked by awkwardness potential, were: traffic conditions, the price of petrol, and anything involving the phrase 'working hard or hardly working?' The research team now recommends all small talk interactions be limited to 30 seconds maximum, followed by strategic retreat.",
+            "link": "https://fallback-satirical-content.com/small-talk-research", 
+            "published": datetime.now().strftime('%a, %d %b %Y %H:%M:%S %z'),
+            "word_count": 195,
+            "video_ready": True,
+            "scraped_at": datetime.now().isoformat()
+        },
+        {
+            "title": "New study confirms arriving early to meetings makes you 47% more likely to be ignored",
+            "humor_type": "everyday_life",
+            "category": "general",
+            "full_content": "Revolutionary research from the Corporate Behavioral Institute has proven what punctual employees have long suspected: arriving early to meetings is professional suicide. The comprehensive study, tracking 2,000 office workers over six months, found that employees who arrive early are 47% more likely to be completely ignored and 73% more likely to witness awkward pre-meeting gossip they shouldn't hear. Dr. Amanda Clarke, lead researcher and reformed early-arriver, stated: 'Early arrivals become invisible furniture. They sit there watching latecomers burst in with important-sounding apologies while they're relegated to note-taking duty.' The study revealed that optimal meeting arrival time is exactly 3.7 minutes late - fashionably delayed but not disrespectfully tardy. The research also discovered that early arrivals are disproportionately assigned the worst tasks, such as 'action item follow-up' and 'scheduling the next meeting.' One participant noted: 'I arrived five minutes early once and ended up organizing the office Christmas party. Never again.' The institute now recommends strategic lateness as a career advancement tool.",
+            "link": "https://fallback-satirical-content.com/meeting-research",
+            "published": datetime.now().strftime('%a, %d %b %Y %H:%M:%S %z'),
+            "word_count": 188,
+            "video_ready": True,
+            "scraped_at": datetime.now().isoformat()
+        }
+    ]
+    
+    # Select content and generate script
+    selected_content = fallback_articles[:max_videos]
+    video_requests = []
+    
+    for content in selected_content:
+        try:
+            # Generate script using the fallback content
+            script_data = daily_mash_system.generate_enhanced_video_script(content)
+            
+            # Create video generation request
+            video_request = daily_mash_system.create_video_generation_request(script_data)
+            
+            video_requests.append({
+                'request': video_request,
+                'script_data': script_data,
+                'source_content': content
+            })
+        except Exception as e:
+            print(f"[ERROR] Failed to process fallback content: {e}")
+            # Create a simple fallback
+            simple_script = create_simple_fallback_script(content)
+            video_requests.append({
+                'request': {"topic": content["title"]},
+                'script_data': simple_script,
+                'source_content': content
+            })
+    
+    return video_requests
+
+def create_simple_fallback_script(content):
+    """Create a very simple script when everything else fails"""
+    
+    sentences = [
+        f"Breaking news from the world of satirical research: {content['title']}",
+        "Scientists have once again confirmed what we all secretly knew.",
+        "This groundbreaking study reveals the absurdity of modern life.",
+        "In conclusion, everything is exactly as ridiculous as you suspected."
+    ]
+    
+    processed_segments = []
+    current_time = 0
+    duration_per_segment = 40000000  # 4 seconds in Azure units
+    
+    for i, sentence in enumerate(sentences):
+        segment = {
+            "sentence": sentence,
+            "start_time": current_time,
+            "end_time": current_time + duration_per_segment,
+            "duration": duration_per_segment,
+            "word_count": len(sentence.split()),
+            "char_count": len(sentence),
+            "segment_number": i + 1
+        }
+        processed_segments.append(segment)
+        current_time += duration_per_segment
+    
+    return {
+        "Text": " ".join(sentences),
+        "title": f"Satirical Take: {content['title'][:50]}...",
+        "sentences": processed_segments,
+        "source_content": {
+            "original_title": content['title'],
+            "humor_type": content['humor_type'],
+            "category": content['category']
+        },
+        "style": "satirical_fallback",
+        "total_duration": len(sentences) * 4.0,
+        "segment_count": len(sentences),
+        "generated_at": datetime.now().isoformat(),
+        "generated_by": "simple_fallback_system"
+    }
+
+@app.route("/fetch-daily-mash-content", methods=["GET"])
+def fetch_daily_mash_content_endpoint():
+    """Fetch available satirical content from The Daily Mash"""
+    
+    try:
+        limit = request.args.get("limit", 5, type=int)
+        
+        daily_mash_system = IntegratedDailyMashSystem()
+        content_items = daily_mash_system.fetch_daily_mash_content(limit=limit)
+        
+        if not content_items:
+            return jsonify({
+                "success": False,
+                "message": "No satirical content available",
+                "content": []
+            })
+        
+        # Return simplified content info for frontend
+        simplified_content = []
+        for item in content_items:
+            simplified_content.append({
+                "title": item["title"],
+                "humor_type": item["humor_type"],
+                "category": item["category"],
+                "word_count": item["word_count"],
+                "preview": item["full_content"][:150] + "..." if len(item["full_content"]) > 150 else item["full_content"],
+                "published": item.get("published", ""),
+                "video_ready": item.get("video_ready", True)
+            })
+        
+        return jsonify({
+            "success": True,
+            "message": f"Found {len(content_items)} satirical articles",
+            "content": simplified_content,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to fetch satirical content"
         }), 500
 
 if __name__ == "__main__":
