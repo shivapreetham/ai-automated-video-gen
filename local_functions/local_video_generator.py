@@ -548,7 +548,7 @@ class LocalVideoGenerator:
                     final_clip.close()
                     
                     print(f"[OK] Fallback audio combination successful: {final_video}")
-                    audio_duration = min_duration
+                    audio_duration = min_duration 
                     
                 except Exception as fallback_error:
                     print(f"[ERROR] Even fallback audio combination failed: {fallback_error}")

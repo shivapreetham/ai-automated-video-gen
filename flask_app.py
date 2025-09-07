@@ -13,6 +13,7 @@ from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 
 from flask import Flask, request, jsonify, send_file, render_template_string
+from flask_cors import CORS
 from werkzeug.exceptions import BadRequest, NotFound
 
 # Load environment variables
@@ -24,6 +25,7 @@ from local_functions.PromptImagesToVideo_pollinations import mindsflow_function 
 from local_functions.textToSpeech_elevenlabs import mindsflow_function as generate_speech
 
 app = Flask(__name__, static_folder='static')
+CORS(app)
 
 # Configuration - Akash integration removed
 
@@ -163,11 +165,20 @@ def generate_script_local(data: Dict[str, Any]) -> Dict[str, Any]:
     try:
         from local_functions.textGeneration_gemini import generate_video_script
         
+        # Ensure proper type conversion with error handling
+        try:
+            num_segments = int(data.get("num_segments", 5))
+            duration_per_segment = float(data.get("duration_per_segment", 4.0))
+        except (ValueError, TypeError) as e:
+            print(f"[ERROR] Type conversion error: {e}")
+            num_segments = 5
+            duration_per_segment = 4.0
+        
         script_data = generate_video_script(
             topic=data["topic"],
             style=data.get("style", "informative"),
-            num_segments=data.get("num_segments", 5),
-            duration_per_segment=data.get("duration_per_segment", 4.0)
+            num_segments=num_segments,
+            duration_per_segment=duration_per_segment
         )
         
         return {
@@ -204,7 +215,7 @@ def generate_script_local(data: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def generate_speech_local(text: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    """Generate speech locally using ElevenLabs"""
+    """Generate speech locally using ElevenLabs with Google TTS fallback"""
     
     speech_event = {
         "text": text,
@@ -213,11 +224,49 @@ def generate_speech_local(text: str, data: Dict[str, Any]) -> Dict[str, Any]:
         "format": "mp3"
     }
     
+    # Try ElevenLabs first
+    print("[SPEECH] Attempting ElevenLabs TTS...")
     result = generate_speech(speech_event, None)
     
+    # Check if ElevenLabs failed
     if not result.get("success", True):
-        raise Exception(f"Speech generation failed: {result.get('error', 'Unknown error')}")
+        error = result.get("error", "Unknown error")
+        print(f"[SPEECH] ElevenLabs failed: {error}")
+        
+        # Check if it's a rate limit or API error that we should fall back from
+        should_fallback = any(keyword in error.lower() for keyword in [
+            'rate limit', 'credits', 'quota', 'limit exceeded', '429', '402', 'insufficient',
+            'invalid api key', 'unauthorized', '401', 'authentication', 'api key',
+            'network error', 'connection', 'timeout', 'resolve', 'failed to resolve',
+            'max retries exceeded', 'httpsconnectionpool'
+        ])
+        
+        if should_fallback:
+            print("[SPEECH] Falling back to Google TTS...")
+            try:
+                # Import Google TTS fallback
+                from local_functions.textToSpeech_gtts import mindsflow_function as generate_google_speech
+                
+                # Use Google TTS as fallback
+                fallback_result = generate_google_speech(speech_event, None)
+                
+                # Add fallback indicator to result
+                if 'audio_url' in fallback_result:
+                    fallback_result['voice_provider'] = 'google_tts_fallback'
+                    fallback_result['success'] = True
+                    print("[SPEECH] Google TTS fallback successful")
+                    return fallback_result
+                else:
+                    raise Exception("Google TTS fallback also failed")
+                    
+            except Exception as fallback_error:
+                print(f"[SPEECH] Google TTS fallback failed: {fallback_error}")
+                raise Exception(f"Both ElevenLabs and Google TTS failed. ElevenLabs: {error}, Google: {fallback_error}")
+        else:
+            # For non-rate-limit errors, don't fall back
+            raise Exception(f"ElevenLabs TTS failed: {error}")
     
+    print("[SPEECH] ElevenLabs TTS successful")
     return result
 
 def generate_video_local(data: Dict[str, Any], script_data: Dict[str, Any], speech_result: Dict[str, Any]) -> Dict[str, Any]:
