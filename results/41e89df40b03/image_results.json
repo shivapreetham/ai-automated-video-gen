@@ -1,0 +1,242 @@
+{
+  "success": true,
+  "images_generated": 6,
+  "images_failed": 0,
+  "total_images_requested": 6,
+  "segments_with_images": [
+    {
+      "segment_number": 1,
+      "segment_text": "The city lights twinkled outside, a soft counterpoint to the warm glow of candles illuminating a meticulously set table.  Elias, his heart pounding, awaited Seraphina.",
+      "segment_type": "narrative",
+      "emotional_tone": "hopeful, nervous",
+      "duration_seconds": 14.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\41e89df40b03\\fallback_segment_01_c8c58f5e.png",
+          "filename": "fallback_segment_01_c8c58f5e.png",
+          "file_size": 11793,
+          "original_prompt": "A wide shot of a romantic restaurant table set for two.  Crystal glasses, elegant silverware, a single red rose in a vase.  The background is blurred city lights, seen through large windows. Soft, warm candlelight illuminates the scene.  Deep focus on the table setting., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "enhanced_prompt": "A wide shot of a romantic restaurant table set for two.  Crystal glasses, elegant silverware, a single red rose in a vase.  The background is blurred city lights, seen through large windows. Soft, warm candlelight illuminates the scene.  Deep focus on the table setting., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "image_duration": 5.0,
+          "segment_duration": 5.0,
+          "generation_time": 0.0,
+          "is_fallback": true,
+          "segment_number": 1,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 2,
+      "segment_text": "Seraphina arrived, her eyes sparkling, a hesitant smile playing on her lips.  The air crackled with unspoken words, a silent conversation beginning between them.",
+      "segment_type": "narrative",
+      "emotional_tone": "tender, hopeful",
+      "duration_seconds": 13.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\41e89df40b03\\segment_02_1757270522_5cfa29af.png",
+          "filename": "segment_02_1757270522_5cfa29af.png",
+          "file_size": 45844,
+          "original_prompt": "Medium shot of Seraphina entering the scene. She is beautifully dressed, her face lit by candlelight, showing a mixture of excitement and apprehension.  Elias stands to greet her, a gentle smile on his face., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "enhanced_prompt": "Medium shot of Seraphina entering the scene. She is beautifully dressed, her face lit by candlelight, showing a mixture of excitement and apprehension. Elias stands to greet her, a gentle smile on his face., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "image_duration": 13.5,
+          "segment_duration": 13.5,
+          "generation_time": 12.497934341430664,
+          "segment_number": 2,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 3,
+      "segment_text": "Chef Jean-Pierre's culinary masterpiece arrived, a symphony of flavors and aromas.  Each bite was a shared experience, a silent language spoken through taste.",
+      "segment_type": "narrative",
+      "emotional_tone": "romantic, peaceful",
+      "duration_seconds": 13.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\41e89df40b03\\segment_03_1757270534_cca82b2f.png",
+          "filename": "segment_03_1757270534_cca82b2f.png",
+          "file_size": 74679,
+          "original_prompt": "Close-up shot of elegant dishes, showcasing the exquisite food.  Elias and Seraphina's hands reaching for the same dish, subtly emphasizing their connection., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "enhanced_prompt": "Close-up shot of elegant dishes, showcasing the exquisite food. Elias and Seraphina's hands reaching for the same dish, subtly emphasizing their connection., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "image_duration": 13.0,
+          "segment_duration": 13.0,
+          "generation_time": 6.184593915939331,
+          "segment_number": 3,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 4,
+      "segment_text": "As the evening deepened, a shared glance, a whispered confidence, a moment of vulnerability emerged, revealing the depths of their feelings.",
+      "segment_type": "narrative",
+      "emotional_tone": "intimate, vulnerable",
+      "duration_seconds": 12.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\41e89df40b03\\segment_04_1757270540_193e841c.png",
+          "filename": "segment_04_1757270540_193e841c.png",
+          "file_size": 48709,
+          "original_prompt": "Close-up shot of Elias and Seraphina's faces, subtly illuminated by candlelight.  Their expressions convey unspoken emotions, a sense of connection, and vulnerability., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "enhanced_prompt": "Close-up shot of Elias and Seraphina's faces, subtly illuminated by candlelight. Their expressions convey unspoken emotions, a sense of connection, and vulnerability., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "image_duration": 12.0,
+          "segment_duration": 12.0,
+          "generation_time": 5.552014350891113,
+          "segment_number": 4,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 5,
+      "segment_text": "In the soft candlelight, a single tear rolled down Seraphina's cheek, mirroring a silent understanding that blossomed between them.",
+      "segment_type": "narrative",
+      "emotional_tone": "poignant, moving",
+      "duration_seconds": 11.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\41e89df40b03\\segment_05_1757270545_22134a07.png",
+          "filename": "segment_05_1757270545_22134a07.png",
+          "file_size": 36543,
+          "original_prompt": "Close-up of Seraphina's face, a single tear rolling down her cheek. The candlelight reflects in her eyes, emphasizing her emotion. Elias's hand gently reaches for hers., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "enhanced_prompt": "Close-up of Seraphina's face, a single tear rolling down her cheek. The candlelight reflects in her eyes, emphasizing her emotion. Elias's hand gently reaches for hers., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "image_duration": 11.0,
+          "segment_duration": 11.0,
+          "generation_time": 5.471922874450684,
+          "segment_number": 5,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 6,
+      "segment_text": "The unspoken words hung in the air, a testament to the depth of connection forged in the glow of candlelight.  A new chapter began.",
+      "segment_type": "narrative",
+      "emotional_tone": "hopeful, peaceful",
+      "duration_seconds": 13.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\41e89df40b03\\segment_06_1757270550_f29b917f.png",
+          "filename": "segment_06_1757270550_f29b917f.png",
+          "file_size": 37554,
+          "original_prompt": "Wide shot of Elias and Seraphina holding hands, silhouetted against the warm glow of candlelight.  A sense of peace and quiet understanding fills the frame., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "enhanced_prompt": "Wide shot of Elias and Seraphina holding hands, silhouetted against the warm glow of candlelight. A sense of peace and quiet understanding fills the frame., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+          "image_duration": 13.5,
+          "segment_duration": 13.5,
+          "generation_time": 5.688746690750122,
+          "segment_number": 6,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    }
+  ],
+  "total_file_size": 255122,
+  "image_results": [
+    {
+      "success": true,
+      "image_file": "results\\41e89df40b03\\fallback_segment_01_c8c58f5e.png",
+      "filename": "fallback_segment_01_c8c58f5e.png",
+      "file_size": 11793,
+      "original_prompt": "A wide shot of a romantic restaurant table set for two.  Crystal glasses, elegant silverware, a single red rose in a vase.  The background is blurred city lights, seen through large windows. Soft, warm candlelight illuminates the scene.  Deep focus on the table setting., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "enhanced_prompt": "A wide shot of a romantic restaurant table set for two.  Crystal glasses, elegant silverware, a single red rose in a vase.  The background is blurred city lights, seen through large windows. Soft, warm candlelight illuminates the scene.  Deep focus on the table setting., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "image_duration": 5.0,
+      "segment_duration": 5.0,
+      "generation_time": 0.0,
+      "is_fallback": true,
+      "segment_number": 1,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\41e89df40b03\\segment_02_1757270522_5cfa29af.png",
+      "filename": "segment_02_1757270522_5cfa29af.png",
+      "file_size": 45844,
+      "original_prompt": "Medium shot of Seraphina entering the scene. She is beautifully dressed, her face lit by candlelight, showing a mixture of excitement and apprehension.  Elias stands to greet her, a gentle smile on his face., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "enhanced_prompt": "Medium shot of Seraphina entering the scene. She is beautifully dressed, her face lit by candlelight, showing a mixture of excitement and apprehension. Elias stands to greet her, a gentle smile on his face., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "image_duration": 13.5,
+      "segment_duration": 13.5,
+      "generation_time": 12.497934341430664,
+      "segment_number": 2,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\41e89df40b03\\segment_03_1757270534_cca82b2f.png",
+      "filename": "segment_03_1757270534_cca82b2f.png",
+      "file_size": 74679,
+      "original_prompt": "Close-up shot of elegant dishes, showcasing the exquisite food.  Elias and Seraphina's hands reaching for the same dish, subtly emphasizing their connection., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "enhanced_prompt": "Close-up shot of elegant dishes, showcasing the exquisite food. Elias and Seraphina's hands reaching for the same dish, subtly emphasizing their connection., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "image_duration": 13.0,
+      "segment_duration": 13.0,
+      "generation_time": 6.184593915939331,
+      "segment_number": 3,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\41e89df40b03\\segment_04_1757270540_193e841c.png",
+      "filename": "segment_04_1757270540_193e841c.png",
+      "file_size": 48709,
+      "original_prompt": "Close-up shot of Elias and Seraphina's faces, subtly illuminated by candlelight.  Their expressions convey unspoken emotions, a sense of connection, and vulnerability., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "enhanced_prompt": "Close-up shot of Elias and Seraphina's faces, subtly illuminated by candlelight. Their expressions convey unspoken emotions, a sense of connection, and vulnerability., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "image_duration": 12.0,
+      "segment_duration": 12.0,
+      "generation_time": 5.552014350891113,
+      "segment_number": 4,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\41e89df40b03\\segment_05_1757270545_22134a07.png",
+      "filename": "segment_05_1757270545_22134a07.png",
+      "file_size": 36543,
+      "original_prompt": "Close-up of Seraphina's face, a single tear rolling down her cheek. The candlelight reflects in her eyes, emphasizing her emotion. Elias's hand gently reaches for hers., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "enhanced_prompt": "Close-up of Seraphina's face, a single tear rolling down her cheek. The candlelight reflects in her eyes, emphasizing her emotion. Elias's hand gently reaches for hers., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "image_duration": 11.0,
+      "segment_duration": 11.0,
+      "generation_time": 5.471922874450684,
+      "segment_number": 5,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\41e89df40b03\\segment_06_1757270550_f29b917f.png",
+      "filename": "segment_06_1757270550_f29b917f.png",
+      "file_size": 37554,
+      "original_prompt": "Wide shot of Elias and Seraphina holding hands, silhouetted against the warm glow of candlelight.  A sense of peace and quiet understanding fills the frame., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "enhanced_prompt": "Wide shot of Elias and Seraphina holding hands, silhouetted against the warm glow of candlelight. A sense of peace and quiet understanding fills the frame., Romantic, intimate, warm lighting with soft focus and shallow depth of field., professional quality",
+      "image_duration": 13.5,
+      "segment_duration": 13.5,
+      "generation_time": 5.688746690750122,
+      "segment_number": 6,
+      "image_number": 1
+    }
+  ],
+  "generation_method": "single_image_per_segment"
+}

@@ -1,0 +1,84 @@
+{
+  "success": true,
+  "segments_generated": 5,
+  "segments_failed": 0,
+  "total_segments": 5,
+  "audio_files": [
+    {
+      "success": true,
+      "audio_file": "results\\c580e0438379\\segment_01_20250908002822_6ed48142.mp3",
+      "filename": "segment_01_20250908002822_6ed48142.mp3",
+      "duration_seconds": 5.616,
+      "file_size": 89856,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 147,
+      "word_count": 23,
+      "segment_number": 1
+    },
+    {
+      "success": true,
+      "audio_file": "results\\c580e0438379\\segment_02_20250908002822_aa621e56.mp3",
+      "filename": "segment_02_20250908002822_aa621e56.mp3",
+      "duration_seconds": 4.62,
+      "file_size": 73920,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 119,
+      "word_count": 18,
+      "segment_number": 2
+    },
+    {
+      "success": true,
+      "audio_file": "results\\c580e0438379\\segment_03_20250908002822_0990667d.mp3",
+      "filename": "segment_03_20250908002822_0990667d.mp3",
+      "duration_seconds": 3.948,
+      "file_size": 63168,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 105,
+      "word_count": 17,
+      "segment_number": 3
+    },
+    {
+      "success": true,
+      "audio_file": "results\\c580e0438379\\segment_04_20250908002827_2c51906a.mp3",
+      "filename": "segment_04_20250908002827_2c51906a.mp3",
+      "duration_seconds": 5.544,
+      "file_size": 88704,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 137,
+      "word_count": 23,
+      "segment_number": 4
+    },
+    {
+      "success": true,
+      "audio_file": "results\\c580e0438379\\segment_05_20250908002828_070df5a4.mp3",
+      "filename": "segment_05_20250908002828_070df5a4.mp3",
+      "duration_seconds": 5.916,
+      "file_size": 94656,
+      "voice_used": "gtts_fallback",
+      "character": null,
+      "segment_type": "narrative",
+      "emotional_tone": "neutral",
+      "text_length": 145,
+      "word_count": 26,
+      "segment_number": 5
+    }
+  ],
+  "total_duration": 25.644,
+  "total_file_size": 410304,
+  "character_voices": {
+    "narrator": "nova"
+  },
+  "generation_method": "elevenlabs_segments"
+}

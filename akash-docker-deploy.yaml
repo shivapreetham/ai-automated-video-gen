@@ -1,40 +1,68 @@
+---
 version: "2.0"
 
 services:
-  story-generator:
-    # Using our pre-built Docker image from Docker Hub
-    image: shiveren/akash-story-service:v2
+  ai-video-generator:
+    # Docker image - build and push to Docker Hub first:
+    # docker build -t yourusername/ai-video-generator:latest .
+    # docker push yourusername/ai-video-generator:latest
+    image: shivapreetham/ai-video-generator:latest
     
+    # Environment variables (set your API keys)
+    env:
+      - PORT=8000
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
+      # Add your API keys here
+      - GEMINI_API_KEY=AIzaSyB2VLzqQbnSy0KloCMlk4IRXD6L9Qwgc8Y
+      - ELEVENLABS_API_KEY=sk_199c37d214698f1395b5ce8145696498acb2e1acaa777d30
+      - OPENAI_API_KEY=your_openai_key_here
+      
+    # Expose HTTP service
     expose:
-      - port: 8080
+      - port: 8000
         as: 80
+        proto: tcp
         to:
           - global: true
     
-    env:
-      # Set your Gemini API key here
-      - GEMINI_API_KEY=AIzaSyB2VLzqQbnSy0KloCMlk4IRXD6L9Qwgc8Y
+    # Resource allocation for AI video processing
+    resources:
+      cpu:
+        units: 2.0        # 2 CPU cores for AI processing
+      memory:
+        size: 8Gi         # 6GB RAM for video/image processing
+      storage:
+        - size: 20Gi      # 15GB storage for outputs and temp files
 
 profiles:
   compute:
-    story-service:
+    ai-video-service:
       resources:
         cpu:
-          units: 1          # 1 CPU core
+          units: 2.0
         memory:
-          size: 1Gi        # 1GB RAM
+          size: 6Gi
         storage:
-          - size: 1Gi      # 1GB storage
+          - size: 15Gi
 
   placement:
-    any-provider:
+    akash-providers:
+      attributes:
+        host: akash
+      signedBy:
+        anyOf:
+          # Trusted Akash providers with good performance
+          - akash1365yvmc4s7awdyj3n2sav7xfx76adc6dnmlx63
+          - akash18qa2a2ltfyvkyj0ggj3hkvuj6twzyumuaru9s4
+          - akash1ccktptfkvq8uzk4gn8j3fgzl8l8xb2dvr5hyy2
       pricing:
-        story-service:
+        ai-video-service:
           denom: uakt
-          amount: 100      # Cost for story generation service
+          amount: 1500      # ~0.002 AKT per block (adjust based on budget)
 
 deployment:
-  story-generator:
-    any-provider:
-      profile: story-service
-      count: 1
+  ai-video-generator:
+    akash-providers:
+      profile: ai-video-service
+      count: 1             # Single instance deployment

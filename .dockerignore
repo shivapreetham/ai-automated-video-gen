@@ -1,0 +1,129 @@
+# Docker ignore file for AI Video Generator
+
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.env.local
+.env.development
+.env.test
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+tests/
+test_*.py
+*_test.py
+
+# Documentation
+docs/
+README.md
+*.md
+!requirements_docker.txt
+
+# Generated/temporary files
+*.log
+*.tmp
+temp/
+tmp/
+logs/
+
+# Results and outputs (keep structure but not content)
+results/*/*
+!results/.gitkeep
+
+# Node.js (if any frontend build artifacts exist)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Media files (exclude large test files)
+*.mp4
+*.avi
+*.mov
+*.wav
+*.mp3
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# Development files
+docker-compose*.yml
+.dockerignore
+Dockerfile.dev
+dev/
+
+# Akash deployment files (not needed in image)
+akash-*.yaml
+*.yaml
+!akash-docker-deploy.yaml
+
+# Test files
+test_*.py
+*_test.py
+run_*.py
+
+# Requirements files (except the one we need)
+requirements.txt
+requirements_enhanced.txt
+requirements_agents.txt
+
+# Keep only essential files for deployment
+!app.py
+!backend_functions/
+!integrated_daily_mash_system.py
+!.env
+!requirements_docker.txt

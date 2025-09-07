@@ -1,0 +1,160 @@
+{
+  "story_title": "Ephemeral Echoes",
+  "story_summary": "A chance encounter blossoms into a fleeting romance, leaving behind a bittersweet memory.  The story explores the power of unspoken connection and the poignant beauty of impermanence.",
+  "characters": [
+    {
+      "name": "Elias",
+      "description": "A quiet, pensive artist with a soulful gaze.",
+      "role": "protagonist"
+    },
+    {
+      "name": "Seraphina",
+      "description": "A free-spirited musician, vibrant and full of life.",
+      "role": "protagonist"
+    },
+    {
+      "name": "The City",
+      "description": "A bustling metropolis, both a backdrop and a character in itself.",
+      "role": "supporting"
+    }
+  ],
+  "full_text": "A rainy Parisian evening.  Elias, sketching in a cafe, catches a glimpse of Seraphina across the street, her laughter echoing through the downpour. Their eyes meet briefly, a silent understanding passing between them.  A shared smile, a fleeting moment of connection. She disappears into the crowd, leaving Elias with a lingering sense of wonder and a half-finished sketch. Days turn into weeks. Elias continues to sketch, often finding himself drawing her face, the memory of her smile subtly altering his art. A final sketch, complete, hangs in his studio, a testament to a romance as ephemeral as a Parisian rainstorm, yet as vivid as a cherished memory.",
+  "segments": [
+    {
+      "segment_number": 1,
+      "segment_type": "narrative",
+      "text": "A rainy Parisian evening.  Elias, sketching in a cafe, catches a glimpse of Seraphina across the street, her laughter echoing through the downpour.",
+      "character_speaking": null,
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "A wide shot of a bustling Parisian street at night, rain glistening on cobblestones.  Elias sits in a cafe, sketching in his notebook, his attention drawn to a vibrant woman laughing across the street. Warm, romantic lighting., Romantic realism, emphasizing the beauty of everyday life in Paris, professional quality",
+          "image_duration": 4,
+          "start_time": 0,
+          "end_time": 4,
+          "visual_focus": "The initial encounter, establishing the setting and characters"
+        }
+      ],
+      "caption_text": "A chance meeting under Parisian skies.",
+      "story_purpose": "Introduce Elias and Seraphina and establish the setting",
+      "emotional_tone": "longing",
+      "transition_to_next": "Elias' gaze follows Seraphina, hinting at a growing interest.",
+      "duration_seconds": 13.0,
+      "start_time": 0,
+      "end_time": 13.0,
+      "word_count": 23,
+      "image_count": 1
+    },
+    {
+      "segment_number": 2,
+      "segment_type": "narrative",
+      "text": "Their eyes meet briefly, a silent understanding passing between them.  A shared smile, a fleeting moment of connection.",
+      "character_speaking": null,
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "Close-up shot of Elias and Seraphina's eyes meeting across the street, a shared smile, a hint of mutual attraction. Rain continues to fall, blurring the background slightly., Romantic realism, emphasizing the beauty of everyday life in Paris, professional quality",
+          "image_duration": 3,
+          "start_time": 0,
+          "end_time": 3,
+          "visual_focus": "The silent connection between the characters"
+        }
+      ],
+      "caption_text": "A silent language between strangers.",
+      "story_purpose": "Highlight the unspoken connection between Elias and Seraphina",
+      "emotional_tone": "tender",
+      "transition_to_next": "Seraphina disappears, leaving Elias with a lingering feeling.",
+      "duration_seconds": 10.5,
+      "start_time": 13.0,
+      "end_time": 23.5,
+      "word_count": 18,
+      "image_count": 1
+    },
+    {
+      "segment_number": 3,
+      "segment_type": "narrative",
+      "text": "She disappears into the crowd, leaving Elias with a lingering sense of wonder and a half-finished sketch.",
+      "character_speaking": null,
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "Elias sits alone in the cafe, looking lost in thought, holding his half-finished sketch.  The rain has slowed to a drizzle.  A melancholic, yet hopeful mood., Romantic realism, emphasizing the beauty of everyday life in Paris, professional quality",
+          "image_duration": 2.5,
+          "start_time": 0,
+          "end_time": 2.5,
+          "visual_focus": "Elias' solitude and lingering feelings"
+        }
+      ],
+      "caption_text": "A fleeting moment, a lasting impression.",
+      "story_purpose": "Show the aftermath of the encounter, creating anticipation",
+      "emotional_tone": "melancholic",
+      "transition_to_next": "Days pass, Elias continues sketching, still thinking of her.",
+      "duration_seconds": 10.0,
+      "start_time": 23.5,
+      "end_time": 33.5,
+      "word_count": 17,
+      "image_count": 1
+    },
+    {
+      "segment_number": 4,
+      "segment_type": "narrative",
+      "text": "Days turn into weeks. Elias continues to sketch, often finding himself drawing her face, the memory of her smile subtly altering his art.",
+      "character_speaking": null,
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "A montage of Elias sketching, focusing on hands drawing, close ups of sketches which gradually reveal Seraphina's face, soft lighting, warm colors. , Romantic realism, emphasizing the beauty of everyday life in Paris, professional quality",
+          "image_duration": 5,
+          "start_time": 0,
+          "end_time": 5,
+          "visual_focus": "The lasting impact of the encounter on Elias's art"
+        }
+      ],
+      "caption_text": "Memories captured in strokes of charcoal.",
+      "story_purpose": "Show the impact of the encounter on Elias' life",
+      "emotional_tone": "reflective",
+      "transition_to_next": "The final image of Elias' sketch hinting at resolution.",
+      "duration_seconds": 13.0,
+      "start_time": 33.5,
+      "end_time": 46.5,
+      "word_count": 23,
+      "image_count": 1
+    },
+    {
+      "segment_number": 5,
+      "segment_type": "narrative",
+      "text": "A final sketch, complete, hangs in his studio, a testament to a romance as ephemeral as a Parisian rainstorm, yet as vivid as a cherished memory.",
+      "character_speaking": null,
+      "images": [
+        {
+          "image_number": 1,
+          "image_prompt": "A finished sketch of Seraphina, hanging in Elias' studio, bathed in soft light. The overall mood is one of acceptance and bittersweet nostalgia., Romantic realism, emphasizing the beauty of everyday life in Paris, professional quality",
+          "image_duration": 4,
+          "start_time": 0,
+          "end_time": 4,
+          "visual_focus": "The resolution and acceptance of the impermanence of the relationship"
+        }
+      ],
+      "caption_text": "Ephemeral Echoes.",
+      "story_purpose": "Resolution and thematic reinforcement",
+      "emotional_tone": "bittersweet",
+      "transition_to_next": "The end.",
+      "duration_seconds": 14.5,
+      "start_time": 46.5,
+      "end_time": 61.0,
+      "word_count": 26,
+      "image_count": 1
+    }
+  ],
+  "total_segments": 5,
+  "estimated_duration": 61.0,
+  "script_length": "medium",
+  "topic": "romance video",
+  "visual_theme": "Romantic realism, emphasizing the beauty of everyday life in Paris",
+  "target_emotion": "Nostalgia, bittersweet longing",
+  "video_style": "Slow-motion shots, evocative music, intimate framing",
+  "total_images": 5,
+  "has_dialogs": false,
+  "generated_at": "2025-09-08T00:28:22.825376",
+  "generator": "story_enhanced"
+}

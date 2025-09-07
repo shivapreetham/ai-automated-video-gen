@@ -1,0 +1,109 @@
+{
+  "generation_id": "c580e0438379",
+  "topic": "romance video",
+  "parameters": {
+    "script_length": "medium",
+    "voice": "nova",
+    "width": 1024,
+    "height": 568,
+    "fps": 24,
+    "img_style_prompt": "professional, detailed, high resolution",
+    "include_dialogs": false,
+    "use_different_voices": false,
+    "add_captions": false,
+    "add_title_card": false,
+    "add_end_card": false
+  },
+  "output_dir": "results\\c580e0438379",
+  "started_at": "2025-09-08T00:28:12.801112",
+  "stages": {
+    "script_generation": {
+      "success": true,
+      "duration": 10.03068733215332,
+      "script_file": "results\\c580e0438379\\story_script.json",
+      "story_title": "Ephemeral Echoes",
+      "segments_count": 5,
+      "estimated_duration": 61.0,
+      "has_dialogs": false,
+      "character_count": 3
+    },
+    "audio_generation": {
+      "success": true,
+      "duration": 11.2690749168396,
+      "results_file": "results\\c580e0438379\\audio_results.json",
+      "segments_generated": 5,
+      "segments_failed": 0,
+      "total_duration": 25.644,
+      "total_file_size": 410304,
+      "character_voices": {
+        "narrator": "nova"
+      }
+    },
+    "image_generation": {
+      "success": true,
+      "duration": 42.488938331604004,
+      "results_file": "results\\c580e0438379\\image_results.json",
+      "images_generated": 5,
+      "images_failed": 0,
+      "total_file_size": 404146
+    },
+    "segment_video_creation": {
+      "success": true,
+      "duration": 20.540650367736816,
+      "results_file": "results\\c580e0438379\\segment_video_results.json",
+      "videos_created": 5,
+      "videos_failed": 0,
+      "total_duration": 0.0,
+      "total_file_size": 1563006
+    },
+    "final_video_stitching": {
+      "success": true,
+      "duration": 50.72017431259155,
+      "results_file": "results\\c580e0438379\\final_video_results.json",
+      "final_video_file": "results\\c580e0438379\\Ephemeral_Echoes_1757271577_cf5aaad9.mp4",
+      "filename": "Ephemeral_Echoes_1757271577_cf5aaad9.mp4",
+      "duration_seconds": 0.0,
+      "file_size": 1753544,
+      "segments_included": 5,
+      "captions_added": false,
+      "has_title_card": false,
+      "has_end_card": false
+    }
+  },
+  "success": true,
+  "error": null,
+  "completed_at": "2025-09-08T00:30:27.854637",
+  "total_generation_time": 135.06156516075134,
+  "final_video": {
+    "file_path": "results\\c580e0438379\\Ephemeral_Echoes_1757271577_cf5aaad9.mp4",
+    "filename": "Ephemeral_Echoes_1757271577_cf5aaad9.mp4",
+    "duration_seconds": 0.0,
+    "file_size_mb": 1.6723098754882812,
+    "width": 1024,
+    "height": 568,
+    "fps": 24
+  },
+  "story_info": {
+    "title": "Ephemeral Echoes",
+    "summary": "A chance encounter blossoms into a fleeting romance, leaving behind a bittersweet memory.  The story explores the power of unspoken connection and the poignant beauty of impermanence.",
+    "characters": [
+      {
+        "name": "Elias",
+        "description": "A quiet, pensive artist with a soulful gaze.",
+        "role": "protagonist"
+      },
+      {
+        "name": "Seraphina",
+        "description": "A free-spirited musician, vibrant and full of life.",
+        "role": "protagonist"
+      },
+      {
+        "name": "The City",
+        "description": "A bustling metropolis, both a backdrop and a character in itself.",
+        "role": "supporting"
+      }
+    ],
+    "total_segments": 5,
+    "has_dialogs": false
+  }
+}

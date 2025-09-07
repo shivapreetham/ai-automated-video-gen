@@ -1,0 +1,81 @@
+{
+  "success": true,
+  "videos_created": 5,
+  "videos_failed": 0,
+  "total_segments": 5,
+  "segment_videos": [
+    {
+      "success": true,
+      "video_file": "results\\c580e0438379\\segment_01_video_1757271556_7615c5b5.mp4",
+      "filename": "segment_01_video_1757271556_7615c5b5.mp4",
+      "duration_seconds": 0.0,
+      "file_size": 407681,
+      "width": 1024,
+      "height": 568,
+      "fps": 24,
+      "images_used": 1,
+      "has_transitions": false,
+      "creation_method": "moviepy",
+      "segment_number": 1
+    },
+    {
+      "success": true,
+      "video_file": "results\\c580e0438379\\segment_02_video_1757271556_f78c53eb.mp4",
+      "filename": "segment_02_video_1757271556_f78c53eb.mp4",
+      "duration_seconds": 0.0,
+      "file_size": 241710,
+      "width": 1024,
+      "height": 568,
+      "fps": 24,
+      "images_used": 1,
+      "has_transitions": false,
+      "creation_method": "moviepy",
+      "segment_number": 2
+    },
+    {
+      "success": true,
+      "video_file": "results\\c580e0438379\\segment_03_video_1757271556_28729b9e.mp4",
+      "filename": "segment_03_video_1757271556_28729b9e.mp4",
+      "duration_seconds": 0.0,
+      "file_size": 227148,
+      "width": 1024,
+      "height": 568,
+      "fps": 24,
+      "images_used": 1,
+      "has_transitions": false,
+      "creation_method": "moviepy",
+      "segment_number": 3
+    },
+    {
+      "success": true,
+      "video_file": "results\\c580e0438379\\segment_04_video_1757271565_609be17f.mp4",
+      "filename": "segment_04_video_1757271565_609be17f.mp4",
+      "duration_seconds": 0.0,
+      "file_size": 297552,
+      "width": 1024,
+      "height": 568,
+      "fps": 24,
+      "images_used": 1,
+      "has_transitions": false,
+      "creation_method": "moviepy",
+      "segment_number": 4
+    },
+    {
+      "success": true,
+      "video_file": "results\\c580e0438379\\segment_05_video_1757271567_bc27fced.mp4",
+      "filename": "segment_05_video_1757271567_bc27fced.mp4",
+      "duration_seconds": 0.0,
+      "file_size": 388915,
+      "width": 1024,
+      "height": 568,
+      "fps": 24,
+      "images_used": 1,
+      "has_transitions": false,
+      "creation_method": "moviepy",
+      "segment_number": 5
+    }
+  ],
+  "total_duration": 0.0,
+  "total_file_size": 1563006,
+  "creation_method": "moviepy"
+}

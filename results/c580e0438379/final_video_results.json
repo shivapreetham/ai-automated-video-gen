@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "final_video_file": "results\\c580e0438379\\Ephemeral_Echoes_1757271577_cf5aaad9.mp4",
+  "filename": "Ephemeral_Echoes_1757271577_cf5aaad9.mp4",
+  "duration_seconds": 0.0,
+  "file_size": 1753544,
+  "segments_included": 5,
+  "has_title_card": false,
+  "has_end_card": false,
+  "has_transitions": true,
+  "stitching_method": "moviepy"
+}
