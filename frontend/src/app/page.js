@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import ClientSideYouTubeUploader from '../components/ClientSideYouTubeUploader';
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState('custom');
@@ -47,9 +48,8 @@ export default function Home() {
   const [r2VideoUrl, setR2VideoUrl] = useState(null);
   const [r2FileName, setR2FileName] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [youtubeUser, setYoutubeUser] = useState(null);
   const [youtubeVideo, setYoutubeVideo] = useState(null);
-  const [isUploadingToYoutube, setIsUploadingToYoutube] = useState(false);
+  const [showYouTubeUploader, setShowYouTubeUploader] = useState(false);
 
   const pollIntervalRef = useRef(null);
 
@@ -244,89 +244,33 @@ export default function Home() {
     }
   };
 
-  const handleYouTubeAuth = async () => {
-    try {
-      const response = await fetch('/api/youtube/auth?action=login');
-      const data = await response.json();
-      
-      if (data.authUrl) {
-        window.open(data.authUrl, 'youtube-auth', 'width=500,height=600');
-        
-        const checkAuth = setInterval(() => {
-          const userCookie = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('youtube_user='));
-            
-          if (userCookie) {
-            const userData = JSON.parse(decodeURIComponent(userCookie.split('=')[1]));
-            setYoutubeUser(userData);
-            clearInterval(checkAuth);
-          }
-        }, 1000);
-        
-        setTimeout(() => clearInterval(checkAuth), 120000);
-      }
-    } catch (error) {
-      console.error('YouTube auth failed:', error);
-      alert('YouTube authentication failed: ' + error.message);
-    }
-  };
-
-  const handleYouTubeUpload = async () => {
-    if (!jobId || status?.status !== 'completed') {
+  const handleYouTubeUploadClick = () => {
+    if (!r2VideoUrl && (!jobId || status?.status !== 'completed')) {
       alert('No video available to upload');
       return;
     }
+    setShowYouTubeUploader(true);
+  };
 
-    if (!youtubeUser) {
-      alert('Please authenticate with YouTube first');
-      return;
-    }
+  const handleYouTubeUploadSuccess = (result) => {
+    setYoutubeVideo({
+      title: result.title,
+      videoId: result.videoId,
+      youtubeUrl: result.youtubeUrl,
+      shortsUrl: result.shortsUrl,
+      manual: false
+    });
 
-    try {
-      setIsUploadingToYoutube(true);
-      
-      const formData = new FormData();
-      formData.append('jobId', jobId);
-      formData.append('title', `AI Generated Video - ${formData.topic || 'Amazing Content'}`);
-      formData.append('description', `Generated with AI Video Generator\nTopic: ${formData.topic || 'AI Content'}\n\n#Shorts #AI #Generated`);
-      formData.append('tags', 'AI,Shorts,Generated,Video,Artificial Intelligence');
+    setShowYouTubeUploader(false);
+    alert(`✅ Video uploaded to YouTube successfully!\n\n🎬 YouTube URL: ${result.shortsUrl}\n📺 Video ID: ${result.videoId}`);
+  };
 
-      const response = await fetch('/api/youtube/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
-        setYoutubeVideo(result);
-        alert('Video uploaded to YouTube successfully!');
-      } else {
-        throw new Error(result.error || 'Upload failed');
-      }
-    } catch (error) {
-      console.error('YouTube upload failed:', error);
-      alert('YouTube upload failed: ' + error.message);
-    } finally {
-      setIsUploadingToYoutube(false);
-    }
+  const handleYouTubeUploadError = (error) => {
+    console.error('YouTube upload failed:', error);
+    alert('Failed to upload to YouTube: ' + error);
   };
 
   useEffect(() => {
-    const userCookie = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('youtube_user='));
-      
-    if (userCookie) {
-      try {
-        const userData = JSON.parse(decodeURIComponent(userCookie.split('=')[1]));
-        setYoutubeUser(userData);
-      } catch (error) {
-        console.error('Error parsing YouTube user data:', error);
-      }
-    }
-
     return () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
@@ -395,27 +339,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* YouTube User Status */}
-          {youtubeUser && (
-            <div className="mb-6 p-4 bg-red-900/20 border border-red-500/20 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <img 
-                  src={youtubeUser.picture} 
-                  alt={youtubeUser.name}
-                  className="w-8 h-8 rounded-full"
-                />
-                <div>
-                  <p className="text-white font-medium text-sm">Connected to YouTube</p>
-                  <p className="text-gray-400 text-xs">{youtubeUser.name}</p>
-                </div>
-                <div className="ml-auto">
-                  <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Custom Video Tab */}
           {activeTab === 'custom' && (
@@ -885,37 +808,15 @@ export default function Home() {
                     <span>Download</span>
                   </button>
                   
-                  {!youtubeUser ? (
-                    <button
-                      onClick={handleYouTubeAuth}
-                      className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all flex items-center space-x-2"
-                    >
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                      </svg>
-                      <span>Connect YouTube</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleYouTubeUpload}
-                      disabled={isUploadingToYoutube}
-                      className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center space-x-2"
-                    >
-                      {isUploadingToYoutube ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Uploading...</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                          </svg>
-                          <span>Upload to YouTube</span>
-                        </>
-                      )}
-                    </button>
-                  )}
+                  <button
+                    onClick={handleYouTubeUploadClick}
+                    className="px-6 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all flex items-center space-x-2"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    <span>Upload to YouTube</span>
+                  </button>
 
                   {isUploading && (
                     <div className="flex items-center space-x-2 px-6 py-3 bg-blue-900/20 text-blue-400 border border-blue-500/30 rounded-lg">
@@ -966,6 +867,37 @@ export default function Home() {
               >
                 Open in new tab ↗
               </a>
+            </div>
+          </div>
+        )}
+
+        {/* Client-side YouTube Upload Dialog */}
+        {showYouTubeUploader && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-lg w-full mx-4 border border-gray-600 max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center">
+                  <div className="bg-red-100 rounded-full p-2 mr-3">
+                    <svg className="w-6 h-6 text-red-600" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">Upload to YouTube</h3>
+                </div>
+                <button
+                  onClick={() => setShowYouTubeUploader(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+              
+              <ClientSideYouTubeUploader
+                videoUrl={r2VideoUrl || (jobId ? `http://localhost:8000/jobs/${jobId}/download` : null)}
+                videoTitle={`AI Generated: ${formData.topic || 'Amazing Content'}`}
+                onUploadSuccess={handleYouTubeUploadSuccess}
+                onUploadError={handleYouTubeUploadError}
+              />
             </div>
           </div>
         )}
