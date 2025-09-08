@@ -12,15 +12,30 @@ from typing import Dict, List, Any, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
-# ElevenLabs configuration
-ELEVENLABS_API_KEY = "sk_199c37d214698f1395b5ce8145696498acb2e1acaa777d30"
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    # Load from parent directory (where .env is located)
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    load_dotenv(env_path)
+except ImportError:
+    pass  # dotenv not required
+
+# ElevenLabs configuration - now uses environment variable
+ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY', 'sk_fallback_key')
 ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1"
 
+# Updated voice mappings with tested working voices
 VOICE_MAP = {
-    'nova': 'pNInz6obpgDQGcFmaJgB',     # Adam
-    'alloy': 'EXAVITQu4vr4xnSDxMaL',   # Bella
-    'echo': 'N2lVS1w4EtoT3dr4eOWO',    # Callum
-    'fable': 'pNInz6obpgDQGcFmaJgB',   # Adam (fallback)
+    'nova': 'pNInz6obpgDQGcFmaJgB',     # Adam - tested working
+    'alloy': '21m00Tcm4TlvDq8ikWAM',    # Rachel - tested working (high quality)
+    'echo': 'ErXwobaYiN019PkySvjV',     # Antoni - tested working
+    'fable': 'EXAVITQu4vr4xnSDxMaL',   # Bella - tested working
+    'rachel': '21m00Tcm4TlvDq8ikWAM',   # Rachel - recommended for video
+    'adam': 'pNInz6obpgDQGcFmaJgB',     # Adam - male voice
+    'bella': 'EXAVITQu4vr4xnSDxMaL',   # Bella - female voice
+    'antoni': 'ErXwobaYiN019PkySvjV',   # Antoni - male voice
+    'domi': 'AZnzlk1XvdvUeBnXmlld',    # Domi - female voice
 }
 
 def generate_segment_audios(script_data: Dict[str, Any], voice: str = "alloy", 
@@ -117,7 +132,12 @@ def assign_character_voices(script_data: Dict[str, Any], primary_voice: str,
     
     # Assign voices to characters
     for i, character in enumerate(characters):
-        char_name = character.get("name", f"character_{i}")
+        # Handle both string names and character objects
+        if isinstance(character, dict):
+            char_name = character.get("name", f"character_{i}")
+        else:
+            char_name = str(character)  # Character is already a string name
+            
         if char_name != "narrator":
             if available_voices:
                 character_voices[char_name] = available_voices[i % len(available_voices)]
@@ -170,20 +190,27 @@ def generate_single_segment_audio(segment: Dict[str, Any], character_voices: Dic
         
         data = {
             "text": text,
-            "model_id": "eleven_monolingual_v1",
+            "model_id": "eleven_multilingual_v2",  # Updated to tested model
             "voice_settings": {
-                "stability": stability,
-                "similarity_boost": similarity_boost,
-                "speed": speed,
-                "style": 0.2 if segment_type == "dialog" else 0.0,
+                "stability": 0.75,  # Use tested optimal settings
+                "similarity_boost": 0.85,  # Use tested optimal settings
+                "style": 0.4 if segment_type == "dialog" else 0.3,  # Improved style
                 "use_speaker_boost": True
             }
         }
         
-        print(f"[SEGMENT {segment_number}] Generating with {voice_to_use} voice...")
+        # Check API key before making request
+        if not ELEVENLABS_API_KEY or ELEVENLABS_API_KEY == 'sk_fallback_key':
+            print(f"[SEGMENT {segment_number}] WARNING: ElevenLabs API key not configured, using gTTS fallback")
+            return generate_segment_audio_gtts_fallback(text, filepath, segment_number)
+        
+        print(f"[SEGMENT {segment_number}] Generating with {voice_to_use} voice using ElevenLabs...")
+        print(f"[SEGMENT {segment_number}] API Key: {ELEVENLABS_API_KEY[:12]}...{ELEVENLABS_API_KEY[-4:]}")
+        
         response = requests.post(url, json=data, headers=headers, stream=True, timeout=60)
         
         if response.status_code != 200:
+            print(f"[SEGMENT {segment_number}] ElevenLabs failed with status {response.status_code}: {response.text[:100]}")
             # Fallback to gTTS
             return generate_segment_audio_gtts_fallback(text, filepath, segment_number)
         

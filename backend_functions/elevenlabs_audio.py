@@ -9,15 +9,30 @@ import datetime
 import uuid
 from typing import Dict, Tuple
 
-# ElevenLabs configuration
-ELEVENLABS_API_KEY = "sk_199c37d214698f1395b5ce8145696498acb2e1acaa777d30"
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    # Load from parent directory (where .env is located)
+    env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    load_dotenv(env_path)
+except ImportError:
+    pass  # dotenv not required
+
+# ElevenLabs configuration - now uses environment variable
+ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY', 'sk_fallback_key')
 ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1"
 
+# Updated voice mappings with tested working voices
 VOICE_MAP = {
-    'nova': 'pNInz6obpgDQGcFmaJgB',     # Adam
-    'alloy': 'EXAVITQu4vr4xnSDxMaL',   # Bella
-    'echo': 'N2lVS1w4EtoT3dr4eOWO',    # Callum
-    'fable': 'pNInz6obpgDQGcFmaJgB',   # Adam (fallback)
+    'nova': 'pNInz6obpgDQGcFmaJgB',     # Adam - tested working
+    'alloy': '21m00Tcm4TlvDq8ikWAM',    # Rachel - tested working (high quality)
+    'echo': 'ErXwobaYiN019PkySvjV',     # Antoni - tested working
+    'fable': 'EXAVITQu4vr4xnSDxMaL',   # Bella - tested working
+    'rachel': '21m00Tcm4TlvDq8ikWAM',   # Rachel - recommended for video
+    'adam': 'pNInz6obpgDQGcFmaJgB',     # Adam - male voice
+    'bella': 'EXAVITQu4vr4xnSDxMaL',   # Bella - female voice
+    'antoni': 'ErXwobaYiN019PkySvjV',   # Antoni - male voice
+    'domi': 'AZnzlk1XvdvUeBnXmlld',    # Domi - female voice
 }
 
 def generate_audio_gtts_fallback(text: str, output_dir: str = ".") -> Dict[str, any]:
@@ -81,7 +96,14 @@ def generate_audio(text: str, voice: str = "nova", speed: float = 1.0, output_di
         return {"success": False, "error": "Text cannot be empty"}
     
     # Get voice ID
-    voice_id = VOICE_MAP.get(voice, VOICE_MAP['nova'])
+    voice_id = VOICE_MAP.get(voice, VOICE_MAP['alloy'])  # Default to Rachel (high quality)
+    
+    # Check API key
+    if not ELEVENLABS_API_KEY or ELEVENLABS_API_KEY == 'sk_fallback_key':
+        print("[AUDIO] WARNING: ElevenLabs API key not configured, using gTTS fallback")
+        return generate_audio_gtts_fallback(text, output_dir)
+    
+    print(f"[AUDIO] Using ElevenLabs API key: {ELEVENLABS_API_KEY[:12]}...{ELEVENLABS_API_KEY[-4:]}")
     
     # Generate filename
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
@@ -100,12 +122,11 @@ def generate_audio(text: str, voice: str = "nova", speed: float = 1.0, output_di
         
         data = {
             "text": text,
-            "model_id": "eleven_monolingual_v1",
+            "model_id": "eleven_multilingual_v2",  # Updated to tested model
             "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.75,
-                "speed": max(0.25, min(4.0, speed)),
-                "style": 0.0,
+                "stability": 0.75,  # Improved from testing
+                "similarity_boost": 0.85,  # Improved from testing
+                "style": 0.4,  # Added style for better quality
                 "use_speaker_boost": True
             }
         }
