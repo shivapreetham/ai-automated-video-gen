@@ -18,9 +18,18 @@ try:
 except ImportError:
     pass  # dotenv not required
 
-# ElevenLabs configuration - now uses environment variable
-ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY', 'sk_fallback_key')
+# ElevenLabs configuration with multiple API key fallbacks
+ELEVENLABS_API_KEYS = [
+    os.getenv('ELEVENLABS_API_KEY'),
+    os.getenv('ELEVENLABS_API_KEY_2'),
+    os.getenv('ELEVENLABS_API_KEY_3')
+]
+
+# Remove None values and invalid keys
+ELEVENLABS_API_KEYS = [key for key in ELEVENLABS_API_KEYS if key and key != 'sk_fallback_key']
+
 ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1"
+print(f"[AUDIO] Loaded {len(ELEVENLABS_API_KEYS)} ElevenLabs API keys for fallback system")
 
 # Updated voice mappings with tested working voices
 VOICE_MAP = {
@@ -78,33 +87,10 @@ def generate_audio_gtts_fallback(text: str, output_dir: str = ".") -> Dict[str, 
     except Exception as e:
         return {"success": False, "error": f"gTTS fallback failed: {e}"}
 
-def generate_audio(text: str, voice: str = "nova", speed: float = 1.0, output_dir: str = ".") -> Dict[str, any]:
+def try_elevenlabs_with_api_key(text: str, voice_id: str, api_key: str, output_dir: str, voice: str, speed: float = 1.0) -> Dict[str, any]:
     """
-    Generate audio using ElevenLabs API
-    
-    Returns:
-    {
-        "success": True,
-        "audio_file": "/path/to/audio.mp3",
-        "duration_seconds": 25.3,
-        "file_size": 1024000,
-        "voice_used": "nova"
-    }
+    Try generating audio with a specific API key
     """
-    
-    if not text or not text.strip():
-        return {"success": False, "error": "Text cannot be empty"}
-    
-    # Get voice ID
-    voice_id = VOICE_MAP.get(voice, VOICE_MAP['alloy'])  # Default to Rachel (high quality)
-    
-    # Check API key
-    if not ELEVENLABS_API_KEY or ELEVENLABS_API_KEY == 'sk_fallback_key':
-        print("[AUDIO] WARNING: ElevenLabs API key not configured, using gTTS fallback")
-        return generate_audio_gtts_fallback(text, output_dir)
-    
-    print(f"[AUDIO] Using ElevenLabs API key: {ELEVENLABS_API_KEY[:12]}...{ELEVENLABS_API_KEY[-4:]}")
-    
     # Generate filename
     timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
     filename = f'audio_{timestamp}_{uuid.uuid4().hex[:8]}.mp3'
@@ -117,57 +103,116 @@ def generate_audio(text: str, voice: str = "nova", speed: float = 1.0, output_di
         headers = {
             "Accept": "audio/mpeg",
             "Content-Type": "application/json",
-            "xi-api-key": ELEVENLABS_API_KEY
+            "xi-api-key": api_key
         }
         
         data = {
             "text": text,
-            "model_id": "eleven_multilingual_v2",  # Updated to tested model
+            "model_id": "eleven_multilingual_v2",
             "voice_settings": {
-                "stability": 0.75,  # Improved from testing
-                "similarity_boost": 0.85,  # Improved from testing
-                "style": 0.4,  # Added style for better quality
+                "stability": 0.75,
+                "similarity_boost": 0.85,
+                "style": 0.4,
                 "use_speaker_boost": True
             }
         }
         
-        print(f"[AUDIO] Generating speech with {voice} voice...")
-        response = requests.post(url, json=data, headers=headers, stream=True)
+        print(f"[AUDIO] Trying API key: {api_key[:12]}...{api_key[-4:]}")
+        response = requests.post(url, json=data, headers=headers, stream=True, timeout=30)
         
-        if response.status_code != 200:
-            print(f"[AUDIO] ElevenLabs failed with status {response.status_code}, trying gTTS fallback...")
-            return generate_audio_gtts_fallback(text, output_dir)
-        
-        # Save audio file
-        with open(filepath, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-        
-        # Get file info
-        file_size = os.path.getsize(filepath)
-        
-        # Estimate duration (rough calculation based on file size and speech speed)
-        words = len(text.split())
-        estimated_duration = (words / 150) * 60 / speed  # 150 WPM adjusted for speed
-        
-        print(f"[AUDIO] Generated: {filename} ({file_size/1024:.1f} KB, ~{estimated_duration:.1f}s)")
-        
-        return {
-            "success": True,
-            "audio_file": filepath,
-            "duration_seconds": estimated_duration,
-            "file_size": file_size,
-            "voice_used": voice,
-            "text_length": len(text),
-            "word_count": words
-        }
-        
+        if response.status_code == 200:
+            # Save audio file
+            with open(filepath, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            
+            # Get file info
+            file_size = os.path.getsize(filepath)
+            
+            # Estimate duration
+            words = len(text.split())
+            estimated_duration = (words / 150) * 60 / speed
+            
+            print(f"[AUDIO] SUCCESS with API key {api_key[:12]}...{api_key[-4:]}: {filename} ({file_size/1024:.1f} KB, ~{estimated_duration:.1f}s)")
+            
+            return {
+                "success": True,
+                "audio_file": filepath,
+                "duration_seconds": estimated_duration,
+                "file_size": file_size,
+                "voice_used": voice,
+                "text_length": len(text),
+                "word_count": words,
+                "api_key_used": f"{api_key[:12]}...{api_key[-4:]}"
+            }
+        else:
+            print(f"[AUDIO] API key {api_key[:12]}...{api_key[-4:]} failed with status {response.status_code}: {response.text}")
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            return {"success": False, "error": f"HTTP {response.status_code}: {response.text}"}
+            
     except Exception as e:
+        print(f"[AUDIO] API key {api_key[:12]}...{api_key[-4:]} exception: {e}")
         if os.path.exists(filepath):
             os.remove(filepath)
-        print(f"[AUDIO] ElevenLabs exception: {e}, trying gTTS fallback...")
+        return {"success": False, "error": str(e)}
+
+def generate_audio(text: str, voice: str = "nova", speed: float = 1.0, output_dir: str = ".") -> Dict[str, any]:
+    """
+    Generate audio using ElevenLabs API with multiple API key fallbacks
+    
+    Returns:
+    {
+        "success": True,
+        "audio_file": "/path/to/audio.mp3",
+        "duration_seconds": 25.3,
+        "file_size": 1024000,
+        "voice_used": "nova",
+        "api_key_used": "sk_xxx...xxxx"
+    }
+    """
+    
+    if not text or not text.strip():
+        return {"success": False, "error": "Text cannot be empty"}
+    
+    # Get voice ID
+    voice_id = VOICE_MAP.get(voice, VOICE_MAP['alloy'])  # Default to Rachel (high quality)
+    
+    # Check if we have any API keys
+    if not ELEVENLABS_API_KEYS:
+        print("[AUDIO] WARNING: No ElevenLabs API keys configured, using gTTS fallback")
         return generate_audio_gtts_fallback(text, output_dir)
+    
+    print(f"[AUDIO] Attempting ElevenLabs with {len(ELEVENLABS_API_KEYS)} API key fallbacks for {voice} voice...")
+    
+    # Try each API key in sequence
+    for i, api_key in enumerate(ELEVENLABS_API_KEYS):
+        print(f"[AUDIO] Trying API key {i+1}/{len(ELEVENLABS_API_KEYS)}")
+        
+        result = try_elevenlabs_with_api_key(text, voice_id, api_key, output_dir, voice, speed)
+        
+        if result.get("success"):
+            print(f"[AUDIO] SUCCESS: ElevenLabs working with API key {i+1}")
+            return result
+        else:
+            print(f"[AUDIO] API key {i+1} failed: {result.get('error', 'Unknown error')}")
+            
+            # Common error handling for rate limits and quotas
+            error_message = result.get('error', '').lower()
+            if 'quota' in error_message or 'limit' in error_message or 'usage' in error_message:
+                print(f"[AUDIO] API key {i+1} appears to have reached quota/limit, trying next key...")
+                continue
+            elif '401' in str(result.get('error', '')):
+                print(f"[AUDIO] API key {i+1} appears invalid (401), trying next key...")
+                continue
+            elif i < len(ELEVENLABS_API_KEYS) - 1:
+                print(f"[AUDIO] API key {i+1} failed, trying next key...")
+                continue
+    
+    # All API keys failed, fallback to gTTS
+    print(f"[AUDIO] All {len(ELEVENLABS_API_KEYS)} ElevenLabs API keys failed, using gTTS fallback...")
+    return generate_audio_gtts_fallback(text, output_dir)
 
 if __name__ == "__main__":
     # Test

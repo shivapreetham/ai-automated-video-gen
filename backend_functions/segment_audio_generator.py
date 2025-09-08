@@ -21,8 +21,15 @@ try:
 except ImportError:
     pass  # dotenv not required
 
-# ElevenLabs configuration - now uses environment variable
-ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY', 'sk_fallback_key')
+# ElevenLabs configuration with multiple API key fallbacks
+ELEVENLABS_API_KEYS = [
+    os.getenv('ELEVENLABS_API_KEY'),
+    os.getenv('ELEVENLABS_API_KEY_2'), 
+    os.getenv('ELEVENLABS_API_KEY_3')
+]
+
+# Remove None values and invalid keys
+ELEVENLABS_API_KEYS = [key for key in ELEVENLABS_API_KEYS if key and key != 'sk_fallback_key']
 ELEVENLABS_BASE_URL = "https://api.elevenlabs.io/v1"
 
 # Updated voice mappings with tested working voices
@@ -37,6 +44,57 @@ VOICE_MAP = {
     'antoni': 'ErXwobaYiN019PkySvjV',   # Antoni - male voice
     'domi': 'AZnzlk1XvdvUeBnXmlld',    # Domi - female voice
 }
+
+# Voice characteristics mapped to Gemini's voice_tone options
+# Dynamic mapping based on character's gender and tone from Gemini
+VOICE_TONE_MAPPING = {
+    'authoritative': ['adam', 'antoni'],      # Deep, commanding voices
+    'gentle': ['rachel', 'bella'],           # Soft, kind voices  
+    'youthful': ['bella', 'domi'],          # Young-sounding voices
+    'wise': ['antoni', 'rachel'],            # Mature, experienced voices
+    'strong': ['adam', 'nova'],             # Powerful, confident voices
+    'warm': ['rachel', 'domi'],             # Caring, friendly voices
+    'deep': ['adam', 'antoni'],             # Serious, dramatic voices
+    'soft': ['bella', 'rachel'],            # Delicate, vulnerable voices
+}
+
+# Voice characteristics for reference
+VOICE_CHARACTERISTICS = {
+    'rachel': {'gender': 'female', 'tone': 'warm', 'quality': 'premium'},
+    'adam': {'gender': 'male', 'tone': 'authoritative', 'quality': 'good'},
+    'bella': {'gender': 'female', 'tone': 'clear', 'quality': 'good'},
+    'antoni': {'gender': 'male', 'tone': 'professional', 'quality': 'good'},
+    'domi': {'gender': 'female', 'tone': 'expressive', 'quality': 'good'},
+    'nova': {'gender': 'male', 'tone': 'friendly', 'quality': 'good'},
+}
+
+def get_voice_for_character(character_data: Dict[str, Any], used_voices: List[str] = None) -> str:
+    """
+    Dynamically assign voice based on Gemini's character gender and tone data
+    
+    Args:
+        character_data: Character object with gender and voice_tone from Gemini
+        used_voices: List of already assigned voices to avoid duplicates
+        
+    Returns:
+        Voice name that best matches the character's tone and gender
+    """
+    if used_voices is None:
+        used_voices = []
+    
+    voice_tone = character_data.get('voice_tone', 'warm')
+    character_gender = character_data.get('gender', 'neutral')
+    
+    # Get potential voices for this tone
+    potential_voices = VOICE_TONE_MAPPING.get(voice_tone, ['rachel', 'adam'])
+    
+    # Try to find an unused voice first
+    for voice in potential_voices:
+        if voice not in used_voices:
+            return voice
+    
+    # If all preferred voices are used, still return the best match
+    return potential_voices[0] if potential_voices else 'rachel'
 
 def generate_segment_audios(script_data: Dict[str, Any], voice: str = "alloy", 
                           output_dir: str = ".", use_different_voices: bool = True) -> Dict[str, Any]:
@@ -116,7 +174,14 @@ def generate_segment_audios(script_data: Dict[str, Any], voice: str = "alloy",
 
 def assign_character_voices(script_data: Dict[str, Any], primary_voice: str, 
                           use_different_voices: bool) -> Dict[str, str]:
-    """Assign different voices to different characters"""
+    """
+    Assign voices to characters based on Gemini's gender and voice_tone data
+    
+    Priority order:
+    1. Dynamic assignment based on Gemini's voice_tone and gender
+    2. Character-specific preferred_voice in script data
+    3. Fallback to available voices
+    """
     
     character_voices = {"narrator": primary_voice}
     
@@ -124,11 +189,7 @@ def assign_character_voices(script_data: Dict[str, Any], primary_voice: str,
         return character_voices
     
     characters = script_data.get("characters", [])
-    available_voices = list(VOICE_MAP.keys())
-    
-    # Remove primary voice from available voices for characters
-    if primary_voice in available_voices:
-        available_voices.remove(primary_voice)
+    used_voices = [primary_voice]  # Track used voices to avoid duplicates
     
     # Assign voices to characters
     for i, character in enumerate(characters):
@@ -137,19 +198,48 @@ def assign_character_voices(script_data: Dict[str, Any], primary_voice: str,
             char_name = character.get("name", f"character_{i}")
         else:
             char_name = str(character)  # Character is already a string name
+            character = {"name": char_name}  # Convert to dict for processing
             
         if char_name != "narrator":
-            if available_voices:
-                character_voices[char_name] = available_voices[i % len(available_voices)]
+            assigned_voice = None
+            
+            # Priority 1: Dynamic assignment based on Gemini's character data
+            if isinstance(character, dict) and character.get("voice_tone"):
+                assigned_voice = get_voice_for_character(character, used_voices)
+                character_voices[char_name] = assigned_voice
+                used_voices.append(assigned_voice)
+                
+                voice_tone = character.get("voice_tone", "")
+                char_gender = character.get("gender", "")
+                print(f"[DYNAMIC VOICE] {char_name} ({char_gender}, {voice_tone}) -> {assigned_voice}")
+            
+            # Priority 2: Check if character has voice preference in script data  
+            elif isinstance(character, dict) and character.get("preferred_voice"):
+                preferred = character.get("preferred_voice")
+                if preferred in VOICE_MAP:
+                    character_voices[char_name] = preferred
+                    used_voices.append(preferred)
+                    print(f"[CUSTOM VOICE] {char_name} -> {preferred} (script preference)")
+                else:
+                    # Fallback 
+                    fallback_voice = get_voice_for_character({"voice_tone": "warm"}, used_voices)
+                    character_voices[char_name] = fallback_voice
+                    used_voices.append(fallback_voice)
+                    print(f"[FALLBACK VOICE] {char_name} -> {fallback_voice} (invalid preference)")
+            
+            # Priority 3: Fallback assignment
             else:
-                character_voices[char_name] = primary_voice
+                fallback_voice = get_voice_for_character({"voice_tone": "warm"}, used_voices)
+                character_voices[char_name] = fallback_voice
+                used_voices.append(fallback_voice)
+                print(f"[DEFAULT VOICE] {char_name} -> {fallback_voice} (no tone data)")
     
-    print(f"[VOICE ASSIGNMENT] {character_voices}")
+    print(f"[VOICE ASSIGNMENT COMPLETE] {character_voices}")
     return character_voices
 
 def generate_single_segment_audio(segment: Dict[str, Any], character_voices: Dict[str, str], 
                                 output_dir: str) -> Dict[str, Any]:
-    """Generate audio for a single segment"""
+    """Generate audio for a single segment using the improved ElevenLabs module with API key fallback"""
     
     segment_number = segment.get("segment_number", 1)
     text = segment.get("text", "").strip()
@@ -164,85 +254,40 @@ def generate_single_segment_audio(segment: Dict[str, Any], character_voices: Dic
     else:
         voice_to_use = character_voices.get("narrator", "alloy")
     
-    # Generate filename
-    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-    filename = f'segment_{segment_number:02d}_{timestamp}_{uuid.uuid4().hex[:8]}.mp3'
-    filepath = os.path.join(output_dir, filename)
+    print(f"[SEGMENT {segment_number}] Generating with {voice_to_use} voice...")
     
-    try:
-        # Get voice ID
-        voice_id = VOICE_MAP.get(voice_to_use, VOICE_MAP['alloy'])
-        
-        # Prepare request
-        url = f"{ELEVENLABS_BASE_URL}/text-to-speech/{voice_id}"
-        headers = {
-            "Accept": "audio/mpeg",
-            "Content-Type": "application/json",
-            "xi-api-key": ELEVENLABS_API_KEY
-        }
-        
-        # Adjust voice settings based on segment type
-        segment_type = segment.get("segment_type", "narrative")
-        emotional_tone = segment.get("emotional_tone", "neutral")
-        
-        # Voice settings based on emotion and type
-        stability, similarity_boost, speed = get_voice_settings(segment_type, emotional_tone)
-        
-        data = {
-            "text": text,
-            "model_id": "eleven_multilingual_v2",  # Updated to tested model
-            "voice_settings": {
-                "stability": 0.75,  # Use tested optimal settings
-                "similarity_boost": 0.85,  # Use tested optimal settings
-                "style": 0.4 if segment_type == "dialog" else 0.3,  # Improved style
-                "use_speaker_boost": True
-            }
-        }
-        
-        # Check API key before making request
-        if not ELEVENLABS_API_KEY or ELEVENLABS_API_KEY == 'sk_fallback_key':
-            print(f"[SEGMENT {segment_number}] WARNING: ElevenLabs API key not configured, using gTTS fallback")
-            return generate_segment_audio_gtts_fallback(text, filepath, segment_number)
-        
-        print(f"[SEGMENT {segment_number}] Generating with {voice_to_use} voice using ElevenLabs...")
-        print(f"[SEGMENT {segment_number}] API Key: {ELEVENLABS_API_KEY[:12]}...{ELEVENLABS_API_KEY[-4:]}")
-        
-        response = requests.post(url, json=data, headers=headers, stream=True, timeout=60)
-        
-        if response.status_code != 200:
-            print(f"[SEGMENT {segment_number}] ElevenLabs failed with status {response.status_code}: {response.text[:100]}")
-            # Fallback to gTTS
-            return generate_segment_audio_gtts_fallback(text, filepath, segment_number)
-        
-        # Save audio file
-        with open(filepath, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-        
-        # Get file info and actual duration
-        file_size = os.path.getsize(filepath)
+    # Use the improved elevenlabs_audio module with API key fallback
+    import sys
+    import os
+    current_dir = os.path.dirname(__file__)
+    if current_dir not in sys.path:
+        sys.path.insert(0, current_dir)
+    
+    from elevenlabs_audio import generate_audio
+    
+    result = generate_audio(text, voice_to_use, 1.0, output_dir)
+    
+    if result.get("success"):
+        # Get actual audio duration if possible
+        filepath = result["audio_file"]
         actual_duration = get_actual_audio_duration(filepath)
         
-        print(f"[SEGMENT {segment_number}] Generated: {filename} ({file_size/1024:.1f} KB, {actual_duration:.1f}s)")
+        print(f"[SEGMENT {segment_number}] SUCCESS: {os.path.basename(filepath)} ({result['file_size']/1024:.1f} KB, {actual_duration:.1f}s)")
+        print(f"[SEGMENT {segment_number}] API key used: {result.get('api_key_used', 'Unknown')}")
         
-        return {
-            "success": True,
-            "audio_file": filepath,
-            "filename": filename,
+        # Add segment-specific metadata
+        result.update({
+            "filename": os.path.basename(filepath),
             "duration_seconds": actual_duration,
-            "file_size": file_size,
-            "voice_used": voice_to_use,
             "character": character,
-            "segment_type": segment_type,
-            "emotional_tone": emotional_tone,
-            "text_length": len(text),
-            "word_count": len(text.split())
-        }
+            "segment_type": segment.get("segment_type", "narrative"),
+            "emotional_tone": segment.get("emotional_tone", "neutral"),
+        })
         
-    except Exception as e:
-        print(f"[SEGMENT {segment_number}] ElevenLabs failed: {e}")
-        return generate_segment_audio_gtts_fallback(text, filepath, segment_number)
+        return result
+    else:
+        print(f"[SEGMENT {segment_number}] FAILED: {result.get('error', 'Unknown error')}")
+        return result
 
 def get_voice_settings(segment_type: str, emotional_tone: str) -> Tuple[float, float, float]:
     """Get voice settings based on segment type and emotional tone"""

@@ -78,6 +78,19 @@ def generate_story_script(topic: str, script_length: str = "medium", include_dia
     - Total estimated duration: {config['total_duration'][0]}-{config['total_duration'][1]} seconds
     {dialog_instruction}
     
+    CHARACTER VOICE REQUIREMENTS:
+    - Assign gender (male/female/neutral) based on character identity
+    - Choose voice_tone based on character personality and role:
+      * authoritative: for leaders, commanders, authority figures
+      * gentle: for kind, nurturing, peaceful characters
+      * youthful: for young, energetic, childlike characters
+      * wise: for older, experienced, sage-like characters
+      * strong: for warriors, fighters, powerful characters
+      * warm: for friendly, caring, motherly/fatherly characters
+      * deep: for mysterious, serious, dramatic characters
+      * soft: for vulnerable, innocent, delicate characters
+    - Consider cross-gender voice assignments when appropriate (e.g., strong female warrior might use authoritative tone, gentle male sage might use warm tone)
+    
     SEGMENT REQUIREMENTS:
     - Variable word count per segment (20-80 words based on story needs)
     - Each segment should have 1-3 images depending on content complexity
@@ -97,7 +110,7 @@ def generate_story_script(topic: str, script_length: str = "medium", include_dia
         "story_title": "Engaging title for the story",
         "story_summary": "Brief 2-sentence summary of the story",
         "characters": [
-            {{"name": "Character Name", "description": "Brief character description", "role": "protagonist/supporting/etc"}}
+            {{"name": "Character Name", "description": "Brief character description", "role": "protagonist/supporting/etc", "gender": "male/female/neutral", "voice_tone": "authoritative/gentle/youthful/wise/strong/warm/deep/soft"}}
         ],
         "segments": [
             {{
