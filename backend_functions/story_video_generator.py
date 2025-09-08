@@ -17,6 +17,7 @@ try:
     from .segment_image_generator import generate_segment_images
     from .segment_video_creator import create_segment_videos
     from .video_segment_stitcher import stitch_segment_videos
+    from .cleanup_utils import auto_cleanup_after_upload, scheduled_cleanup
 except ImportError:
     # Fallback to absolute imports
     import sys
@@ -27,13 +28,14 @@ except ImportError:
     from segment_image_generator import generate_segment_images
     from segment_video_creator import create_segment_videos
     from video_segment_stitcher import stitch_segment_videos
+    from cleanup_utils import auto_cleanup_after_upload, scheduled_cleanup
 
 def generate_story_video(topic: str, script_length: str = "medium", voice: str = "alloy",
                         width: int = 1024, height: int = 576, fps: int = 24,
                         img_style_prompt: str = "cinematic, professional",
                         include_dialogs: bool = True, use_different_voices: bool = True,
                         add_captions: bool = True, add_title_card: bool = True,
-                        add_end_card: bool = True) -> Dict[str, Any]:
+                        add_end_card: bool = True, auto_cleanup: bool = False) -> Dict[str, Any]:
     """
     Generate a complete story video using the new segment-based approach
     
@@ -262,6 +264,23 @@ def generate_story_video(topic: str, script_length: str = "medium", voice: str =
         print(f"[STORY VIDEO] COMPLETED: '{script_result.get('story_title')}' in {total_duration:.1f}s")
         print(f"[STORY VIDEO] Final video: {final_result.get('filename')}")
         print(f"[STORY VIDEO] Results saved to: {output_dir}")
+        
+        # Add cleanup flag to results
+        results["cleanup_available"] = True
+        results["output_directory"] = output_dir
+        
+        # Perform automatic cleanup if requested
+        if auto_cleanup:
+            print(f"[STORY VIDEO] Auto-cleanup enabled, cleaning intermediate files...")
+            try:
+                from .cleanup_utils import cleanup_result_folder
+                cleanup_result_folder(output_dir, keep_final_video=True)
+                results["auto_cleanup_performed"] = True
+                print(f"[STORY VIDEO] Auto-cleanup completed")
+            except Exception as cleanup_error:
+                print(f"[STORY VIDEO] Auto-cleanup failed: {cleanup_error}")
+                results["auto_cleanup_performed"] = False
+                results["cleanup_error"] = str(cleanup_error)
         
         return results
         

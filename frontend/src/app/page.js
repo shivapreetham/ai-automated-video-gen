@@ -205,6 +205,10 @@ export default function Home() {
         const result = await uploadResponse.json();
         setR2VideoUrl(result.publicUrl);
         setR2FileName(result.fileName);
+        
+        // Trigger automatic cleanup after successful upload
+        console.log('R2 upload successful, triggering cleanup...');
+        await triggerCleanupAfterUpload(id);
       } else {
         const errorText = await uploadResponse.text();
         throw new Error('R2 upload failed: ' + errorText);
@@ -214,6 +218,34 @@ export default function Home() {
       alert('Failed to upload video to cloud storage: ' + error.message);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const triggerCleanupAfterUpload = async (jobId) => {
+    try {
+      console.log(`Triggering cleanup for job ${jobId}...`);
+      
+      const cleanupResponse = await fetch(`http://localhost:8000/jobs/${jobId}/cleanup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          keep_final_video: true // Keep final video for download
+        })
+      });
+
+      if (cleanupResponse.ok) {
+        const result = await cleanupResponse.json();
+        console.log('Cleanup completed successfully:', result.message);
+      } else {
+        const errorText = await cleanupResponse.text();
+        console.warn('Cleanup failed (non-critical):', errorText);
+        // Don't throw error - cleanup failure shouldn't break the upload flow
+      }
+    } catch (error) {
+      console.warn('Cleanup request failed (non-critical):', error.message);
+      // Don't throw error - cleanup failure shouldn't break the upload flow
     }
   };
 

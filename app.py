@@ -1153,8 +1153,134 @@ def fetch_daily_mash_content_endpoint():
             "message": "Failed to fetch satirical content"
         }), 500
 
+@app.route("/cleanup", methods=["POST", "GET"])
+def cleanup_endpoint():
+    """Cleanup result folders and temporary files"""
+    
+    try:
+        # Import cleanup utilities
+        from backend_functions.cleanup_utils import scheduled_cleanup, get_cleanup_stats, cleanup_result_folder
+        
+        if request.method == "GET":
+            # Get current cleanup stats
+            stats = get_cleanup_stats()
+            return jsonify({
+                "success": True,
+                "message": "Cleanup statistics retrieved",
+                "stats": stats,
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        # POST request - perform cleanup
+        data = request.get_json() or {}
+        cleanup_type = data.get("type", "scheduled")  # scheduled, specific, stats
+        
+        if cleanup_type == "scheduled":
+            # Run full scheduled cleanup
+            result = scheduled_cleanup()
+            return jsonify({
+                "success": True,
+                "message": "Scheduled cleanup completed",
+                "result": result,
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        elif cleanup_type == "specific":
+            # Clean up specific folder
+            folder_path = data.get("folder_path")
+            if not folder_path:
+                return jsonify({"error": "folder_path is required for specific cleanup"}), 400
+            
+            success = cleanup_result_folder(folder_path, keep_final_video=data.get("keep_final_video", True))
+            return jsonify({
+                "success": success,
+                "message": f"Cleanup {'completed' if success else 'failed'} for {folder_path}",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        elif cleanup_type == "stats":
+            # Just return stats
+            stats = get_cleanup_stats()
+            return jsonify({
+                "success": True,
+                "message": "Statistics retrieved",
+                "stats": stats,
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        else:
+            return jsonify({"error": "Invalid cleanup type. Use: scheduled, specific, or stats"}), 400
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Cleanup operation failed"
+        }), 500
+
+@app.route("/jobs/<job_id>/cleanup", methods=["POST"])
+def cleanup_job(job_id: str):
+    """Clean up result folder for a specific job after successful upload"""
+    
+    if job_id not in active_jobs:
+        return jsonify({"error": "Job not found"}), 404
+    
+    job = active_jobs[job_id]
+    
+    if job.status != "completed" or not job.result:
+        return jsonify({"error": "Job not completed or no results available"}), 400
+    
+    try:
+        # Import cleanup utilities
+        from backend_functions.cleanup_utils import cleanup_result_folder
+        
+        # Get output directory from job results
+        output_dir = job.result.get("output_dir")
+        if not output_dir:
+            return jsonify({"error": "No output directory found in job results"}), 400
+        
+        # Get cleanup options from request
+        data = request.get_json() or {}
+        keep_final_video = data.get("keep_final_video", True)
+        
+        # Perform cleanup
+        success = cleanup_result_folder(output_dir, keep_final_video=keep_final_video)
+        
+        if success:
+            # Update job result to indicate cleanup was performed
+            job.result["cleanup_performed"] = True
+            job.result["cleanup_timestamp"] = datetime.now().isoformat()
+            
+            return jsonify({
+                "success": True,
+                "message": f"Cleanup completed for job {job_id}",
+                "output_dir": output_dir,
+                "keep_final_video": keep_final_video
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": f"Cleanup failed for job {job_id}",
+                "output_dir": output_dir
+            }), 500
+    
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": f"Cleanup operation failed for job {job_id}"
+        }), 500
+
 if __name__ == "__main__":
     print("Starting AI Video Generator Flask App...")
     print("Local Mode: Script generation using Gemini AI")
+    
+    # Run initial cleanup on startup
+    try:
+        from backend_functions.cleanup_utils import cleanup_temporary_files
+        cleanup_temporary_files()
+        print("Initial cleanup completed")
+    except Exception as e:
+        print(f"Initial cleanup failed: {e}")
     
     app.run(host="0.0.0.0", port=8000, debug=True)

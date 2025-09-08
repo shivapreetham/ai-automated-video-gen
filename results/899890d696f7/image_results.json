@@ -1,0 +1,240 @@
+{
+  "success": true,
+  "images_generated": 6,
+  "images_failed": 0,
+  "total_images_requested": 6,
+  "segments_with_images": [
+    {
+      "segment_number": 1,
+      "segment_text": "1947. The air crackles with anticipation.  In a small village nestled amidst vibrant fields, Lakshmi, a skilled weaver, feels the weight of history on her nimble fingers. Each thread she weaves is a prayer for freedom.",
+      "segment_type": "narrative",
+      "emotional_tone": "Hopeful, serene",
+      "duration_seconds": 19.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\899890d696f7\\segment_01_1757297301_2dd6f890.png",
+          "filename": "segment_01_1757297301_2dd6f890.png",
+          "file_size": 89287,
+          "original_prompt": "A wide shot of lush green Indian countryside under a vibrant sunrise.  Lakshmi, a young woman with determined eyes, sits at a loom, weaving intricate patterns into a vibrant sari., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "enhanced_prompt": "A wide shot of lush green Indian countryside under a vibrant sunrise. Lakshmi, a young woman with determined eyes, sits at a loom, weaving intricate patterns into a vibrant sari., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "image_duration": 19.5,
+          "segment_duration": 19.5,
+          "generation_time": 8.91232967376709,
+          "segment_number": 1,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 2,
+      "segment_text": "Rajan: Lakshmi, the protests are escalating.  We must join the march.",
+      "segment_type": "dialog",
+      "emotional_tone": "Suspenseful, anxious",
+      "duration_seconds": 7.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\899890d696f7\\segment_02_1757297309_04991886.png",
+          "filename": "segment_02_1757297309_04991886.png",
+          "file_size": 84645,
+          "original_prompt": "A nighttime gathering in a village square.  People are talking in hushed tones, their faces lit by flickering lanterns. Rajan is speaking passionately to Lakshmi., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "enhanced_prompt": "A nighttime gathering in a village square. People are talking in hushed tones, their faces lit by flickering lanterns. Rajan is speaking passionately to Lakshmi., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "image_duration": 7.0,
+          "segment_duration": 7.0,
+          "generation_time": 7.9402735233306885,
+          "segment_number": 2,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 3,
+      "segment_text": "Lakshmi: (hesitantly)  But Amma...the risks...",
+      "segment_type": "mixed",
+      "emotional_tone": "Intense, conflicted",
+      "duration_seconds": 4.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\899890d696f7\\segment_03_1757297316_6eeb3678.png",
+          "filename": "segment_03_1757297316_6eeb3678.png",
+          "file_size": 56332,
+          "original_prompt": "Close-up on Lakshmi's face, reflecting her inner conflict \u2013 fear and determination battling within her., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "enhanced_prompt": "Close-up on Lakshmi's face, reflecting her inner conflict \u2013 fear and determination battling within her., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "image_duration": 4.0,
+          "segment_duration": 4.0,
+          "generation_time": 5.932716608047485,
+          "segment_number": 3,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 4,
+      "segment_text": "Elder Amma places a hand on Lakshmi\u2019s shoulder.  'Our freedom is worth the fight, child.'  Inspired, Lakshmi joins the march, a sea of people surging towards a new dawn.",
+      "segment_type": "narrative",
+      "emotional_tone": "Powerful, inspiring",
+      "duration_seconds": 16.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\899890d696f7\\segment_04_1757297321_e07a4acb.png",
+          "filename": "segment_04_1757297321_e07a4acb.png",
+          "file_size": 136592,
+          "original_prompt": "A powerful, sweeping shot of a large crowd marching through the streets, waving Indian flags.  Lakshmi is visible amidst the crowd., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "enhanced_prompt": "A powerful, sweeping shot of a large crowd marching through the streets, waving Indian flags. Lakshmi is visible amidst the crowd., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "image_duration": 16.0,
+          "segment_duration": 16.0,
+          "generation_time": 8.60019850730896,
+          "segment_number": 4,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 5,
+      "segment_text": "Rajan: (voice filled with emotion)  It's done! We're free!",
+      "segment_type": "dialog",
+      "emotional_tone": "Triumphant, joyous",
+      "duration_seconds": 6.0,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\899890d696f7\\segment_05_1757297329_29879124.png",
+          "filename": "segment_05_1757297329_29879124.png",
+          "file_size": 51635,
+          "original_prompt": "A majestic shot of the Indian flag being raised high, bathed in the golden light of dawn. People cheer and celebrate joyfully., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "enhanced_prompt": "A majestic shot of the Indian flag being raised high, bathed in the golden light of dawn. People cheer and celebrate joyfully., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "image_duration": 6.0,
+          "segment_duration": 6.0,
+          "generation_time": 7.246184587478638,
+          "segment_number": 5,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    },
+    {
+      "segment_number": 6,
+      "segment_text": "Lakshmi watches, tears of joy streaming down her face. The threads of her life, and her nation, are forever intertwined with the vibrant tapestry of freedom.",
+      "segment_type": "narrative",
+      "emotional_tone": "Joyful, reflective",
+      "duration_seconds": 14.5,
+      "images": [
+        {
+          "success": true,
+          "image_file": "results\\899890d696f7\\segment_06_1757297336_9992cffe.png",
+          "filename": "segment_06_1757297336_9992cffe.png",
+          "file_size": 62478,
+          "original_prompt": "Close-up on Lakshmi's face, tears of joy and gratitude reflecting the achievement of independence., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "enhanced_prompt": "Close-up on Lakshmi's face, tears of joy and gratitude reflecting the achievement of independence., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+          "image_duration": 14.5,
+          "segment_duration": 14.5,
+          "generation_time": 6.767714738845825,
+          "segment_number": 6,
+          "image_number": 1
+        }
+      ],
+      "image_count": 1,
+      "successful_images": 1,
+      "failed_images": 0
+    }
+  ],
+  "total_file_size": 480969,
+  "image_results": [
+    {
+      "success": true,
+      "image_file": "results\\899890d696f7\\segment_01_1757297301_2dd6f890.png",
+      "filename": "segment_01_1757297301_2dd6f890.png",
+      "file_size": 89287,
+      "original_prompt": "A wide shot of lush green Indian countryside under a vibrant sunrise.  Lakshmi, a young woman with determined eyes, sits at a loom, weaving intricate patterns into a vibrant sari., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "enhanced_prompt": "A wide shot of lush green Indian countryside under a vibrant sunrise. Lakshmi, a young woman with determined eyes, sits at a loom, weaving intricate patterns into a vibrant sari., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "image_duration": 19.5,
+      "segment_duration": 19.5,
+      "generation_time": 8.91232967376709,
+      "segment_number": 1,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\899890d696f7\\segment_02_1757297309_04991886.png",
+      "filename": "segment_02_1757297309_04991886.png",
+      "file_size": 84645,
+      "original_prompt": "A nighttime gathering in a village square.  People are talking in hushed tones, their faces lit by flickering lanterns. Rajan is speaking passionately to Lakshmi., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "enhanced_prompt": "A nighttime gathering in a village square. People are talking in hushed tones, their faces lit by flickering lanterns. Rajan is speaking passionately to Lakshmi., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "image_duration": 7.0,
+      "segment_duration": 7.0,
+      "generation_time": 7.9402735233306885,
+      "segment_number": 2,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\899890d696f7\\segment_03_1757297316_6eeb3678.png",
+      "filename": "segment_03_1757297316_6eeb3678.png",
+      "file_size": 56332,
+      "original_prompt": "Close-up on Lakshmi's face, reflecting her inner conflict \u2013 fear and determination battling within her., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "enhanced_prompt": "Close-up on Lakshmi's face, reflecting her inner conflict \u2013 fear and determination battling within her., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "image_duration": 4.0,
+      "segment_duration": 4.0,
+      "generation_time": 5.932716608047485,
+      "segment_number": 3,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\899890d696f7\\segment_04_1757297321_e07a4acb.png",
+      "filename": "segment_04_1757297321_e07a4acb.png",
+      "file_size": 136592,
+      "original_prompt": "A powerful, sweeping shot of a large crowd marching through the streets, waving Indian flags.  Lakshmi is visible amidst the crowd., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "enhanced_prompt": "A powerful, sweeping shot of a large crowd marching through the streets, waving Indian flags. Lakshmi is visible amidst the crowd., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "image_duration": 16.0,
+      "segment_duration": 16.0,
+      "generation_time": 8.60019850730896,
+      "segment_number": 4,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\899890d696f7\\segment_05_1757297329_29879124.png",
+      "filename": "segment_05_1757297329_29879124.png",
+      "file_size": 51635,
+      "original_prompt": "A majestic shot of the Indian flag being raised high, bathed in the golden light of dawn. People cheer and celebrate joyfully., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "enhanced_prompt": "A majestic shot of the Indian flag being raised high, bathed in the golden light of dawn. People cheer and celebrate joyfully., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "image_duration": 6.0,
+      "segment_duration": 6.0,
+      "generation_time": 7.246184587478638,
+      "segment_number": 5,
+      "image_number": 1
+    },
+    {
+      "success": true,
+      "image_file": "results\\899890d696f7\\segment_06_1757297336_9992cffe.png",
+      "filename": "segment_06_1757297336_9992cffe.png",
+      "file_size": 62478,
+      "original_prompt": "Close-up on Lakshmi's face, tears of joy and gratitude reflecting the achievement of independence., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "enhanced_prompt": "Close-up on Lakshmi's face, tears of joy and gratitude reflecting the achievement of independence., Warm, vibrant colors reflecting the beauty of India and the hope for the future, contrasted with darker tones representing the struggle for independence., professional quality",
+      "image_duration": 14.5,
+      "segment_duration": 14.5,
+      "generation_time": 6.767714738845825,
+      "segment_number": 6,
+      "image_number": 1
+    }
+  ],
+  "generation_method": "single_image_per_segment"
+}
