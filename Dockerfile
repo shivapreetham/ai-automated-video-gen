@@ -1,51 +1,57 @@
-FROM python:3.12-slim
+FROM python:3.9-slim-buster
 
-# Runtime environment
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    DEBIAN_FRONTEND=noninteractive \
     FLASK_APP=app.py \
-    PORT=8000
+    PORT=8000 \
+    FLASK_ENV=production \
+    DEBIAN_FRONTEND=noninteractive
 
-# System dependencies (minimal, for OpenCV, ffmpeg, SciPy/Numpy, healthcheck)
+# System dependencies - using older base image that works reliably
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    libsm6 \
-    libxext6 \
-    libgl1 \
-    libglib2.0-0 \
-    libgomp1 \
-    curl \
-  && rm -rf /var/lib/apt/lists/*
+        ffmpeg \
+        libsm6 \
+        libxext6 \
+        libfontconfig1 \
+        libxrender1 \
+        libgl1-mesa-glx \
+        libglib2.0-0 \
+        curl \
+        wget \
+        ca-certificates \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install Python deps first (better layer caching)
+# Copy requirements first for better caching
 COPY requirements.txt ./
-RUN python -m pip install --upgrade pip setuptools wheel \
- && pip install -r requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app.py ./
-COPY backend_functions ./backend_functions
-COPY agents ./agents
-COPY integrated_daily_mash_system.py ./
-COPY content_generator_integration.py ./
+COPY backend_functions/ ./backend_functions/
+COPY satirical_agent/ ./satirical_agent/
 
-# Create necessary directories
-RUN mkdir -p /app/results /app/temp /app/static /app/logs
+# Create directories and set permissions
+RUN mkdir -p results temp static logs data && \
+    groupadd -r appuser && \
+    useradd -r -g appuser -d /app appuser && \
+    chown -R appuser:appuser /app
 
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser \
-  && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
-# Run via gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--threads", "4", "--worker-class", "gthread", "--timeout", "300", "--keep-alive", "60", "app:app"]
+CMD ["gunicorn", \
+    "--bind", "0.0.0.0:8000", \
+    "--workers", "2", \
+    "--threads", "2", \
+    "--timeout", "600", \
+    "app:app"]

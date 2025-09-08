@@ -1,68 +1,80 @@
 ---
 version: "2.0"
+name: ai-video-generator
 
 services:
-  ai-video-generator:
-    # Docker image - build and push to Docker Hub first:
-    # docker build -t yourusername/ai-video-generator:latest .
-    # docker push yourusername/ai-video-generator:latest
-    image: shivapreetham/ai-video-generator:latest
-    
-    # Environment variables (set your API keys)
+  ai-video-backend:
+    image: shivapreetham/ai-video-generator:v2.0
     env:
+      # ---- Server ----
       - PORT=8000
       - FLASK_ENV=production
       - PYTHONUNBUFFERED=1
-      # Add your API keys here
-      - GEMINI_API_KEY=AIzaSyB2VLzqQbnSy0KloCMlk4IRXD6L9Qwgc8Y
-      - ELEVENLABS_API_KEY=sk_199c37d214698f1395b5ce8145696498acb2e1acaa777d30
-      - OPENAI_API_KEY=your_openai_key_here
-      
-    # Expose HTTP service
+      - FLASK_APP=app.py
+
+      # ---- AI API Keys ----
+      - GEMINI_API_KEY=AIzaSyCcwuVAN6JVyOSX-LUcuCD9EHNVHxP6F38
+      - ELEVENLABS_API_KEY_1=sk_e1d72fe34380a2d8149aeb965032985aad2e1c5b715fb26e
+      - ELEVENLABS_API_KEY_2=sk_29bbdf2113b0f03c94544b473fe7356612cb2bdf9bff636c
+      - ELEVENLABS_API_KEY_3=sk_6103aed96de8ea8869f3f5d5ddf03c06989359d723ad44f0
+
+      # ---- Cloudflare R2 ----
+      - CLOUDFLARE_R2_ACCOUNT_ID=5e794ca2e8862a9aa01f71d22a4bc140
+      - CLOUDFLARE_R2_ACCESS_KEY_ID=9fc741b3e894d3962d5cd08def2ca8f4
+      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=097b6e421fd64ba84868bdd77d9a788f78ca790ee2753a0bba341f518d293bc9
+      - CLOUDFLARE_R2_BUCKET_NAME=ai-video-generator
+      - CLOUDFLARE_R2_PUBLIC_URL=https://pub-03ff283e17364a388c9937161449a2c4.r2.dev
+
+      # ---- Tuning ----
+      - WORKER_TIMEOUT=600
+      - WORKER_CONNECTIONS=750
+      - MAX_CONCURRENT_JOBS=2
+      - CLEANUP_TEMP_FILES=true
+      - MAX_STORAGE_MB=6000
+      - CLEANUP_INTERVAL_HOURS=1
+      - MAX_RESULT_FOLDERS=3
+      - LOG_LEVEL=INFO
+      - ENABLE_METRICS=true
+      - HEALTH_CHECK_INTERVAL=30
+
     expose:
       - port: 8000
         as: 80
-        proto: tcp
         to:
           - global: true
-    
-    # Resource allocation for AI video processing
-    resources:
-      cpu:
-        units: 2.0        # 2 CPU cores for AI processing
-      memory:
-        size: 8Gi         # 6GB RAM for video/image processing
+        accept:
+          - ai-video.akash.network
+
+    params:
       storage:
-        - size: 20Gi      # 15GB storage for outputs and temp files
+        data:
+          mount: /app/data
+          readOnly: false
 
 profiles:
   compute:
     ai-video-service:
       resources:
         cpu:
-          units: 2.0
+          units: "3"
         memory:
-          size: 6Gi
+          size: 4Gi
         storage:
-          - size: 15Gi
+          - name: data
+            size: 10Gi
+            attributes:
+              persistent: true
+              class: beta2
 
   placement:
-    akash-providers:
-      attributes:
-        host: akash
-      signedBy:
-        anyOf:
-          # Trusted Akash providers with good performance
-          - akash1365yvmc4s7awdyj3n2sav7xfx76adc6dnmlx63
-          - akash18qa2a2ltfyvkyj0ggj3hkvuj6twzyumuaru9s4
-          - akash1ccktptfkvq8uzk4gn8j3fgzl8l8xb2dvr5hyy2
+    akash-network:
       pricing:
         ai-video-service:
           denom: uakt
-          amount: 1500      # ~0.002 AKT per block (adjust based on budget)
+          amount: 1200   # raise if you get no bids (try 1800–2500)
 
 deployment:
-  ai-video-generator:
-    akash-providers:
+  ai-video-backend:
+    akash-network:
       profile: ai-video-service
-      count: 1             # Single instance deployment
+      count: 1
