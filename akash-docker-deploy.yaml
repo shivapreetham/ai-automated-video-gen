@@ -43,7 +43,7 @@ services:
         to:
           - global: true
         accept:
-          - ai-video.akash.network
+          - api.yourdomain.com
 
     params:
       storage:

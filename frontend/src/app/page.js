@@ -72,7 +72,8 @@ export default function Home() {
   const fetchDailyMashContent = async () => {
     setIsLoadingContent(true);
     try {
-      const response = await fetch('http://localhost:8000/fetch-daily-mash-content?limit=5');
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiBase}/fetch-daily-mash-content?limit=5`);
       const data = await response.json();
       
       if (data.success) {
@@ -100,7 +101,8 @@ export default function Home() {
     setJobId(null);
 
     try {
-      const response = await fetch('http://localhost:8000/generate-advanced-video', {
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiBase}/generate-advanced-video`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,7 +133,8 @@ export default function Home() {
     setJobId(null);
 
     try {
-      const response = await fetch('http://localhost:8000/generate-advanced-satirical-video', {
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiBase}/generate-advanced-satirical-video`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,7 +164,8 @@ export default function Home() {
     
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:8000/jobs/${id}/status`);
+        const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiBase}/jobs/${id}/status`);
         const data = await response.json();
         
         setStatus(data);
@@ -186,7 +190,8 @@ export default function Home() {
       console.log('Starting R2 upload for job:', id);
       setIsUploading(true);
       
-      const response = await fetch(`http://localhost:8000/jobs/${id}/download`);
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const response = await fetch(`${apiBase}/jobs/${id}/download`);
       if (!response.ok) throw new Error('Failed to download video');
       
       const blob = await response.blob();
@@ -225,7 +230,8 @@ export default function Home() {
     try {
       console.log(`Triggering cleanup for job ${jobId}...`);
       
-      const cleanupResponse = await fetch(`http://localhost:8000/jobs/${jobId}/cleanup`, {
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const cleanupResponse = await fetch(`${apiBase}/jobs/${jobId}/cleanup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -251,7 +257,8 @@ export default function Home() {
 
   const handleDownload = () => {
     if (jobId && status?.status === 'completed') {
-      window.open(`http://localhost:8000/jobs/${jobId}/download`, '_blank');
+      const apiBase = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      window.open(`${apiBase}/jobs/${jobId}/download`, '_blank');
     }
   };
 
@@ -925,7 +932,7 @@ export default function Home() {
               </div>
               
               <ClientSideYouTubeUploader
-                videoUrl={r2VideoUrl || (jobId ? `http://localhost:8000/jobs/${jobId}/download` : null)}
+                videoUrl={r2VideoUrl || (jobId ? `${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}/jobs/${jobId}/download` : null)}
                 videoTitle={`AI Generated: ${formData.topic || 'Amazing Content'}`}
                 onUploadSuccess={handleYouTubeUploadSuccess}
                 onUploadError={handleYouTubeUploadError}

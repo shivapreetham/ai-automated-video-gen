@@ -1,4 +1,4 @@
-FROM python:3.9-slim-buster
+FROM python:3.11-slim-bullseye
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -7,7 +7,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     FLASK_ENV=production \
     DEBIAN_FRONTEND=noninteractive
 
-# System dependencies - using older base image that works reliably
+# System dependencies - using bullseye which is stable and supported
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg \
         libsm6 \
@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         wget \
         ca-certificates \
+        libgomp1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
