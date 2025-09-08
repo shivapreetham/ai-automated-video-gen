@@ -27,7 +27,7 @@ from backend_functions.segment_audio_generator import generate_segment_audios
 from backend_functions.segment_image_generator import generate_segment_images
 from backend_functions.segment_video_creator import create_segment_videos
 from backend_functions.video_segment_stitcher import stitch_segment_videos
-from integrated_daily_mash_system import IntegratedDailyMashSystem
+from satirical_agent.integrated_daily_mash_system import IntegratedDailyMashSystem
 
 # Legacy imports for compatibility (fallback)
 try:
