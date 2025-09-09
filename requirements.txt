@@ -42,3 +42,6 @@ pytz==2024.1
 requests-html==0.10.0
 # System utilities
 psutil==6.0.0
+
+# Security & Encryption
+cryptography==43.0.1
