@@ -36,6 +36,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY app.py ./
 COPY backend_functions/ ./backend_functions/
 COPY satirical_agent/ ./satirical_agent/
+COPY agents/ ./agents/
 
 # Create directories and set permissions
 RUN mkdir -p results temp static logs data && \
