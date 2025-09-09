@@ -4,7 +4,7 @@ name: ai-video-generator
 
 services:
   ai-video-backend:
-    image: shivapreetham/ai-video-generator:v2.0
+    image: shiveren/ai-video-generator:latest
     env:
       # ---- Server ----
       - PORT=8000

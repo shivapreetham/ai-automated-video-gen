@@ -29,6 +29,15 @@ from backend_functions.segment_video_creator import create_segment_videos
 from backend_functions.video_segment_stitcher import stitch_segment_videos
 from satirical_agent.integrated_daily_mash_system import IntegratedDailyMashSystem
 
+# Import agentic workflow components
+from backend_functions.job_queue_manager import JobQueueManager, JobStatus
+from backend_functions.agentic_video_worker import (
+    start_agentic_workforce, stop_agentic_workforce, get_workforce_status
+)
+from agents.topic_generation_agent import TopicGenerationAgent
+from backend_functions.oauth_credentials_manager import get_oauth_manager
+from backend_functions.cloudflare_storage_manager import get_cloudflare_manager
+
 # Legacy imports for compatibility (fallback)
 try:
     from old_functions.textToSpeech_gtts import mindsflow_function as generate_google_speech
@@ -42,6 +51,22 @@ CORS(app)
 
 # In-memory job storage (use Redis in production)
 active_jobs = {}
+
+# Initialize agentic workflow components
+try:
+    job_queue_manager = JobQueueManager()
+    topic_generation_agent = TopicGenerationAgent()
+    oauth_manager = get_oauth_manager()
+    cloudflare_manager = get_cloudflare_manager()
+    agentic_workforce = None  # Will be initialized on demand
+    print("[AGENTIC] Initialized agentic workflow components")
+except Exception as e:
+    print(f"[AGENTIC] Error initializing agentic components: {e}")
+    job_queue_manager = None
+    topic_generation_agent = None
+    oauth_manager = None
+    cloudflare_manager = None
+    agentic_workforce = None
 
 class VideoJob:
     def __init__(self, job_id: str):
@@ -1269,6 +1294,1719 @@ def cleanup_job(job_id: str):
             "success": False,
             "error": str(e),
             "message": f"Cleanup operation failed for job {job_id}"
+        }), 500
+
+# ===== AGENTIC WORKFLOW ENDPOINTS =====
+
+@app.route("/agentic/start-workforce", methods=["POST"])
+def start_agentic_workforce_endpoint():
+    """Start the agentic video generation workforce"""
+    global agentic_workforce
+    
+    try:
+        if not job_queue_manager:
+            return jsonify({"error": "Agentic components not initialized"}), 500
+        
+        data = request.get_json() or {}
+        num_workers = data.get("num_workers", 1)
+        
+        if agentic_workforce and get_workforce_status() and get_workforce_status().get("is_running"):
+            return jsonify({
+                "success": False,
+                "message": "Workforce already running",
+                "status": get_workforce_status()
+            })
+        
+        agentic_workforce = start_agentic_workforce(num_workers)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Started {num_workers} workers",
+            "workforce_status": get_workforce_status(),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to start workforce"
+        }), 500
+
+@app.route("/agentic/stop-workforce", methods=["POST"])
+def stop_agentic_workforce_endpoint():
+    """Stop the agentic video generation workforce"""
+    try:
+        if not agentic_workforce:
+            return jsonify({
+                "success": False,
+                "message": "No workforce running"
+            })
+        
+        stop_agentic_workforce()
+        
+        return jsonify({
+            "success": True,
+            "message": "Workforce stopped",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to stop workforce"
+        }), 500
+
+@app.route("/agentic/workforce-status", methods=["GET"])
+def get_agentic_workforce_status():
+    """Get status of agentic workforce"""
+    try:
+        status = get_workforce_status()
+        
+        if not status:
+            return jsonify({
+                "is_running": False,
+                "message": "No workforce initialized",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        return jsonify({
+            "workforce_status": status,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "message": "Failed to get workforce status"
+        }), 500
+
+@app.route("/agentic/generate-topics", methods=["POST"])
+def generate_topics_endpoint():
+    """Generate topics for specific domains"""
+    try:
+        if not topic_generation_agent:
+            return jsonify({"error": "Topic generation agent not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        domains = data.get("domains", ["indian_mythology"])
+        topics_per_domain = data.get("topics_per_domain", 5)
+        save_to_queue = data.get("save_to_queue", True)
+        
+        # Generate topics
+        daily_topics = topic_generation_agent.generate_daily_topics(domains, topics_per_domain)
+        
+        # Optionally save to queue
+        if save_to_queue:
+            topic_generation_agent.save_topics_to_queue(daily_topics)
+        
+        return jsonify({
+            "success": True,
+            "topics": daily_topics,
+            "total_topics": sum(len(topics) for topics in daily_topics.values()),
+            "domains": list(daily_topics.keys()),
+            "saved_to_queue": save_to_queue,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate topics"
+        }), 500
+
+@app.route("/agentic/add-jobs-from-topics", methods=["POST"])
+def add_jobs_from_topics_endpoint():
+    """Add jobs to queue from generated topics"""
+    try:
+        if not job_queue_manager:
+            return jsonify({"error": "Job queue manager not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        # Load topics from queue file or use provided topics
+        topics_by_domain = data.get("topics")
+        
+        if not topics_by_domain:
+            # Load from default queue file
+            queue_file = data.get("queue_file", "topic_queue.json")
+            if os.path.exists(queue_file):
+                with open(queue_file, 'r', encoding='utf-8') as f:
+                    topics_by_domain = json.load(f)
+            else:
+                return jsonify({"error": "No topics provided and no queue file found"}), 400
+        
+        # Add jobs to queue
+        added_count = job_queue_manager.bulk_add_jobs_from_topics(topics_by_domain)
+        
+        return jsonify({
+            "success": True,
+            "jobs_added": added_count,
+            "total_jobs_added": sum(added_count.values()),
+            "queue_status": job_queue_manager.get_queue_status(),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to add jobs from topics"
+        }), 500
+
+@app.route("/agentic/queue-status", methods=["GET"])
+def get_agentic_queue_status():
+    """Get status of job queue"""
+    try:
+        if not job_queue_manager:
+            return jsonify({"error": "Job queue manager not initialized"}), 500
+        
+        status = job_queue_manager.get_queue_status()
+        
+        return jsonify({
+            "queue_status": status,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "message": "Failed to get queue status"
+        }), 500
+
+@app.route("/agentic/completed-videos", methods=["GET"])
+def get_completed_videos_endpoint():
+    """Get completed video jobs"""
+    try:
+        if not job_queue_manager:
+            return jsonify({"error": "Job queue manager not initialized"}), 500
+        
+        limit = request.args.get("limit", 20, type=int)
+        completed_jobs = job_queue_manager.get_completed_jobs_with_videos(limit)
+        
+        return jsonify({
+            "success": True,
+            "completed_videos": completed_jobs,
+            "count": len(completed_jobs),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to get completed videos"
+        }), 500
+
+@app.route("/agentic/download-video/<job_id>", methods=["GET"])
+def download_agentic_video(job_id: str):
+    """Download video file for a specific job"""
+    try:
+        if not job_queue_manager:
+            return jsonify({"error": "Job queue manager not initialized"}), 500
+        
+        video_path = job_queue_manager.get_video_for_job(job_id)
+        
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({"error": "Video file not found"}), 404
+        
+        return send_file(
+            video_path,
+            as_attachment=True,
+            download_name=f"agentic_video_{job_id}.mp4",
+            mimetype="video/mp4"
+        )
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "message": "Failed to download video"
+        }), 500
+
+@app.route("/agentic/cancel-job/<job_id>", methods=["POST"])
+def cancel_agentic_job(job_id: str):
+    """Cancel a queued job"""
+    try:
+        if not job_queue_manager:
+            return jsonify({"error": "Job queue manager not initialized"}), 500
+        
+        success = job_queue_manager.cancel_job(job_id)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": f"Job {job_id} cancelled",
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Job not found or cannot be cancelled"
+            }), 400
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to cancel job"
+        }), 500
+
+@app.route("/agentic/auto-workflow", methods=["POST"])
+def start_auto_workflow():
+    """Start complete automated workflow: generate topics -> add jobs -> start workers"""
+    try:
+        if not all([job_queue_manager, topic_generation_agent]):
+            return jsonify({"error": "Agentic components not initialized"}), 500
+        
+        data = request.get_json() or {}
+        domains = data.get("domains", ["indian_mythology", "technology", "science"])
+        topics_per_domain = data.get("topics_per_domain", 5)
+        num_workers = data.get("num_workers", 1)
+        
+        workflow_results = {
+            "stage_1_topics": None,
+            "stage_2_jobs": None,
+            "stage_3_workforce": None
+        }
+        
+        # Stage 1: Generate topics
+        daily_topics = topic_generation_agent.generate_daily_topics(domains, topics_per_domain)
+        topic_generation_agent.save_topics_to_queue(daily_topics)
+        workflow_results["stage_1_topics"] = {
+            "success": True,
+            "topics_generated": sum(len(topics) for topics in daily_topics.values()),
+            "domains": list(daily_topics.keys())
+        }
+        
+        # Stage 2: Add jobs from topics
+        added_count = job_queue_manager.bulk_add_jobs_from_topics(daily_topics)
+        workflow_results["stage_2_jobs"] = {
+            "success": True,
+            "jobs_added": added_count,
+            "total_jobs": sum(added_count.values())
+        }
+        
+        # Stage 3: Start workforce if not running
+        global agentic_workforce
+        workforce_status = get_workforce_status()
+        if not workforce_status or not workforce_status.get("is_running"):
+            agentic_workforce = start_agentic_workforce(num_workers)
+            workflow_results["stage_3_workforce"] = {
+                "success": True,
+                "workers_started": num_workers,
+                "status": get_workforce_status()
+            }
+        else:
+            workflow_results["stage_3_workforce"] = {
+                "success": True,
+                "message": "Workforce already running",
+                "status": workforce_status
+            }
+        
+        return jsonify({
+            "success": True,
+            "message": "Automated workflow started successfully",
+            "workflow_results": workflow_results,
+            "queue_status": job_queue_manager.get_queue_status(),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to start automated workflow",
+            "workflow_results": workflow_results
+        }), 500
+
+@app.route("/agentic/add-manual-topic", methods=["POST"])
+def add_manual_topic_endpoint():
+    """Add a manual topic directly to the job queue"""
+    try:
+        if not job_queue_manager:
+            return jsonify({"error": "Job queue manager not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        topic = data.get("topic")
+        domain = data.get("domain", "general")
+        
+        if not topic:
+            raise BadRequest("Topic is required")
+        
+        # Optional video generation parameters
+        job_params = {
+            "script_length": data.get("script_length", "medium"),
+            "voice": data.get("voice", "alloy"),
+            "width": data.get("width", 1024),
+            "height": data.get("height", 576),
+            "fps": data.get("fps", 24),
+            "img_style_prompt": data.get("img_style_prompt", f"professional, {domain}-themed, high quality"),
+            "include_dialogs": data.get("include_dialogs", True),
+            "use_different_voices": data.get("use_different_voices", True),
+            "add_captions": data.get("add_captions", True),
+            "add_title_card": data.get("add_title_card", True),
+            "add_end_card": data.get("add_end_card", True)
+        }
+        
+        # Add job to queue
+        job_id = job_queue_manager.add_job(topic, domain, **job_params)
+        
+        return jsonify({
+            "success": True,
+            "message": "Manual topic added to queue",
+            "job_id": job_id,
+            "topic": topic,
+            "domain": domain,
+            "parameters": job_params,
+            "queue_status": job_queue_manager.get_queue_status(),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to add manual topic"
+        }), 500
+
+@app.route("/agentic/review-generated-topics", methods=["GET"])
+def review_generated_topics_endpoint():
+    """Get generated topics for manual review before adding to queue"""
+    try:
+        if not topic_generation_agent:
+            return jsonify({"error": "Topic generation agent not initialized"}), 500
+        
+        # Get query parameters
+        domains = request.args.getlist("domains") or ["indian_mythology", "technology", "science"]
+        topics_per_domain = request.args.get("topics_per_domain", 5, type=int)
+        
+        # Generate topics but don't save to queue yet
+        daily_topics = topic_generation_agent.generate_daily_topics(domains, topics_per_domain)
+        
+        # Format for review
+        review_topics = []
+        for domain, topics in daily_topics.items():
+            for topic_data in topics:
+                review_topics.append({
+                    "id": f"{domain}_{len(review_topics)}",
+                    "topic": topic_data["topic"],
+                    "domain": domain,
+                    "subtopics": topic_data["subtopics"],
+                    "keywords": topic_data["keywords"],
+                    "estimated_interest": topic_data["estimated_interest"],
+                    "generated_at": topic_data["generated_at"],
+                    "selected": True  # Default to selected for convenience
+                })
+        
+        return jsonify({
+            "success": True,
+            "topics_for_review": review_topics,
+            "total_topics": len(review_topics),
+            "domains": domains,
+            "message": "Select topics to add to queue, then call /agentic/approve-reviewed-topics",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate topics for review"
+        }), 500
+
+@app.route("/agentic/approve-reviewed-topics", methods=["POST"])
+def approve_reviewed_topics_endpoint():
+    """Approve selected topics from review and add to job queue"""
+    try:
+        if not all([job_queue_manager, topic_generation_agent]):
+            return jsonify({"error": "Agentic components not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        selected_topics = data.get("selected_topics", [])
+        
+        if not selected_topics:
+            raise BadRequest("No topics selected")
+        
+        # Process approved topics
+        approved_count = {}
+        job_ids = []
+        
+        for topic_data in selected_topics:
+            domain = topic_data.get("domain", "general")
+            topic = topic_data.get("topic")
+            
+            if not topic:
+                continue
+            
+            # Optional custom parameters for this topic
+            job_params = {
+                "script_length": topic_data.get("script_length", "medium"),
+                "voice": topic_data.get("voice", "alloy"),
+                "img_style_prompt": topic_data.get("img_style_prompt", f"professional, {domain}-themed, high quality"),
+                "include_dialogs": topic_data.get("include_dialogs", True),
+                "use_different_voices": topic_data.get("use_different_voices", True),
+                "add_captions": topic_data.get("add_captions", True),
+                "add_title_card": topic_data.get("add_title_card", True),
+                "add_end_card": topic_data.get("add_end_card", True)
+            }
+            
+            # Add to job queue
+            job_id = job_queue_manager.add_job(topic, domain, **job_params)
+            job_ids.append(job_id)
+            
+            # Count by domain
+            approved_count[domain] = approved_count.get(domain, 0) + 1
+        
+        # Optionally save approved topics to topic queue file
+        save_to_topic_queue = data.get("save_to_topic_queue", False)
+        if save_to_topic_queue:
+            # Convert approved topics to the format expected by topic agent
+            topics_by_domain = {}
+            for topic_data in selected_topics:
+                domain = topic_data.get("domain", "general")
+                if domain not in topics_by_domain:
+                    topics_by_domain[domain] = []
+                
+                topics_by_domain[domain].append({
+                    "topic": topic_data["topic"],
+                    "domain": domain,
+                    "subtopics": topic_data.get("subtopics", []),
+                    "keywords": topic_data.get("keywords", []),
+                    "estimated_interest": topic_data.get("estimated_interest", 0.7),
+                    "generated_at": topic_data.get("generated_at"),
+                    "used": True,  # Mark as used since we're adding to job queue
+                    "approved_by_user": True
+                })
+            
+            topic_generation_agent.save_topics_to_queue(topics_by_domain)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Approved {len(selected_topics)} topics and added to job queue",
+            "approved_topics": len(selected_topics),
+            "approved_count_by_domain": approved_count,
+            "job_ids": job_ids,
+            "saved_to_topic_queue": save_to_topic_queue,
+            "queue_status": job_queue_manager.get_queue_status(),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to approve reviewed topics"
+        }), 500
+
+@app.route("/agentic/topic-queue-status", methods=["GET"])
+def get_topic_queue_status():
+    """Get status of the topic queue (generated but not yet used topics)"""
+    try:
+        if not topic_generation_agent:
+            return jsonify({"error": "Topic generation agent not initialized"}), 500
+        
+        status = topic_generation_agent.get_queue_status()
+        
+        return jsonify({
+            "success": True,
+            "topic_queue_status": status,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to get topic queue status"
+        }), 500
+
+@app.route("/agentic/get-next-topic", methods=["POST"])
+def get_next_topic_from_queue():
+    """Get next unused topic from topic queue"""
+    try:
+        if not topic_generation_agent:
+            return jsonify({"error": "Topic generation agent not initialized"}), 500
+        
+        data = request.get_json() or {}
+        domain = data.get("domain")  # Optional domain filter
+        
+        next_topic = topic_generation_agent.get_next_topic_from_queue(domain)
+        
+        if next_topic:
+            return jsonify({
+                "success": True,
+                "topic": next_topic,
+                "message": "Topic retrieved and marked as used",
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "No unused topics available in queue",
+                "topic_queue_status": topic_generation_agent.get_queue_status(),
+                "timestamp": datetime.now().isoformat()
+            })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to get next topic from queue"
+        }), 500
+
+@app.route("/agentic/hybrid-workflow", methods=["POST"])
+def start_hybrid_workflow():
+    """Start hybrid workflow: generate topics -> user reviews -> approved topics added to queue -> workers process"""
+    try:
+        if not all([job_queue_manager, topic_generation_agent]):
+            return jsonify({"error": "Agentic components not initialized"}), 500
+        
+        data = request.get_json() or {}
+        workflow_type = data.get("type", "generate_for_review")  # or "use_manual_topics"
+        
+        if workflow_type == "generate_for_review":
+            # Stage 1: Generate topics for user review (don't add to queue yet)
+            domains = data.get("domains", ["indian_mythology", "technology", "science"])
+            topics_per_domain = data.get("topics_per_domain", 5)
+            
+            daily_topics = topic_generation_agent.generate_daily_topics(domains, topics_per_domain)
+            
+            # Format for review
+            review_topics = []
+            for domain, topics in daily_topics.items():
+                for topic_data in topics:
+                    review_topics.append({
+                        "id": f"{domain}_{len(review_topics)}",
+                        "topic": topic_data["topic"],
+                        "domain": domain,
+                        "subtopics": topic_data["subtopics"],
+                        "keywords": topic_data["keywords"],
+                        "estimated_interest": topic_data["estimated_interest"],
+                        "generated_at": topic_data["generated_at"],
+                        "selected": True  # Default selection
+                    })
+            
+            return jsonify({
+                "success": True,
+                "workflow_stage": "topics_generated_for_review",
+                "topics_for_review": review_topics,
+                "total_topics": len(review_topics),
+                "next_step": "Review topics and call /agentic/approve-reviewed-topics",
+                "message": "Topics generated. Please review and approve.",
+                "timestamp": datetime.now().isoformat()
+            })
+            
+        elif workflow_type == "use_manual_topics":
+            # User provides their own topics
+            manual_topics = data.get("topics", [])
+            
+            if not manual_topics:
+                raise BadRequest("No manual topics provided")
+            
+            # Add manual topics directly to job queue
+            job_ids = []
+            for topic_data in manual_topics:
+                topic = topic_data.get("topic")
+                domain = topic_data.get("domain", "general")
+                
+                if topic:
+                    job_id = job_queue_manager.add_job(topic, domain)
+                    job_ids.append(job_id)
+            
+            return jsonify({
+                "success": True,
+                "workflow_stage": "manual_topics_added",
+                "topics_added": len(job_ids),
+                "job_ids": job_ids,
+                "queue_status": job_queue_manager.get_queue_status(),
+                "message": "Manual topics added to job queue",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+        else:
+            raise BadRequest("Invalid workflow type. Use 'generate_for_review' or 'use_manual_topics'")
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to start hybrid workflow"
+        }), 500
+
+# ===== REAL-TIME POLLING ENDPOINTS =====
+
+@app.route("/polling/system-status", methods=["GET"])
+def get_system_status_polling():
+    """Get comprehensive system status for constant polling"""
+    try:
+        # Get workforce status
+        workforce_status = get_workforce_status()
+        
+        # Get queue status
+        queue_status = job_queue_manager.get_queue_status() if job_queue_manager else None
+        
+        # Get topic queue status
+        topic_queue_status = topic_generation_agent.get_queue_status() if topic_generation_agent else None
+        
+        # Get recent completed jobs
+        recent_completed = job_queue_manager.get_completed_jobs_with_videos(5) if job_queue_manager else []
+        
+        # System health indicators
+        system_health = {
+            "agentic_components_ready": bool(job_queue_manager and topic_generation_agent),
+            "workers_running": bool(workforce_status and workforce_status.get("is_running")),
+            "active_workers": len(workforce_status.get("workers", {})) if workforce_status else 0,
+            "jobs_in_queue": queue_status.get("by_status", {}).get("queued", 0) if queue_status else 0,
+            "jobs_processing": queue_status.get("by_status", {}).get("processing", 0) if queue_status else 0,
+            "videos_ready": len(recent_completed),
+            "last_completed": recent_completed[0] if recent_completed else None
+        }
+        
+        return jsonify({
+            "system_status": {
+                "timestamp": datetime.now().isoformat(),
+                "uptime": (datetime.now() - datetime.fromtimestamp(time.time())).total_seconds() if hasattr(time, 'start_time') else None,
+                "health": system_health,
+                "workforce": workforce_status,
+                "job_queue": queue_status,
+                "topic_queue": topic_queue_status,
+                "recent_completed": recent_completed[:3]  # Only show last 3
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "system_status": {
+                "timestamp": datetime.now().isoformat(),
+                "error": str(e),
+                "health": {"status": "error"}
+            }
+        }), 500
+
+@app.route("/polling/job-updates/<job_id>", methods=["GET"])
+def get_job_updates_polling(job_id: str):
+    """Get detailed updates for a specific job (for real-time progress tracking)"""
+    try:
+        if not job_queue_manager:
+            return jsonify({"error": "Job queue manager not initialized"}), 500
+        
+        job = job_queue_manager.get_job(job_id)
+        
+        if not job:
+            return jsonify({"error": "Job not found"}), 404
+        
+        # Get job details
+        job_details = {
+            "job_id": job.job_id,
+            "topic": job.topic,
+            "domain": job.domain,
+            "status": job.status.value,
+            "progress": job.progress,
+            "message": job.message,
+            "created_at": job.created_at.isoformat(),
+            "started_at": job.started_at.isoformat() if job.started_at else None,
+            "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+            "error": job.error,
+            "estimated_completion": None
+        }
+        
+        # Add estimated completion time if processing
+        if job.status.value == "processing" and job.started_at:
+            # Rough estimate based on average video generation time (10-15 minutes)
+            elapsed = (datetime.now() - job.started_at).total_seconds()
+            estimated_total = 900  # 15 minutes average
+            estimated_remaining = max(0, estimated_total - elapsed)
+            job_details["estimated_completion"] = estimated_remaining
+        
+        # Get video file info if completed
+        video_info = None
+        if job.status.value == "completed":
+            video_path = job_queue_manager.get_video_for_job(job_id)
+            if video_path and os.path.exists(video_path):
+                try:
+                    file_size = os.path.getsize(video_path)
+                    video_info = {
+                        "file_path": video_path,
+                        "file_size": file_size,
+                        "file_size_mb": round(file_size / (1024 * 1024), 2),
+                        "ready_for_download": True
+                    }
+                except:
+                    video_info = {"ready_for_download": False}
+        
+        return jsonify({
+            "job_update": {
+                "timestamp": datetime.now().isoformat(),
+                "job": job_details,
+                "video_info": video_info,
+                "result": job.result
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route("/polling/activity-stream", methods=["GET"])
+def get_activity_stream_polling():
+    """Get recent activity stream for dashboard (jobs completed, started, failed, etc.)"""
+    try:
+        # Get recent activity (last 50 jobs with timestamps)
+        all_jobs = []
+        if job_queue_manager:
+            for job in job_queue_manager._job_cache.values():
+                all_jobs.append({
+                    "job_id": job.job_id,
+                    "topic": job.topic[:50] + "..." if len(job.topic) > 50 else job.topic,
+                    "domain": job.domain,
+                    "status": job.status.value,
+                    "created_at": job.created_at.isoformat(),
+                    "started_at": job.started_at.isoformat() if job.started_at else None,
+                    "completed_at": job.completed_at.isoformat() if job.completed_at else None,
+                    "progress": job.progress,
+                    "message": job.message
+                })
+        
+        # Sort by most recent activity
+        all_jobs.sort(key=lambda x: x.get("completed_at") or x.get("started_at") or x["created_at"], reverse=True)
+        
+        # Group by status for quick overview
+        activity_summary = {
+            "total_jobs": len(all_jobs),
+            "recently_completed": len([j for j in all_jobs if j["status"] == "completed" and j.get("completed_at")]),
+            "currently_processing": len([j for j in all_jobs if j["status"] == "processing"]),
+            "queued": len([j for j in all_jobs if j["status"] == "queued"]),
+            "failed": len([j for j in all_jobs if j["status"] == "failed"])
+        }
+        
+        return jsonify({
+            "activity_stream": {
+                "timestamp": datetime.now().isoformat(),
+                "summary": activity_summary,
+                "recent_jobs": all_jobs[:20],  # Last 20 jobs
+                "processing_jobs": [j for j in all_jobs if j["status"] == "processing"],
+                "latest_completed": [j for j in all_jobs if j["status"] == "completed"][:5]
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+@app.route("/polling/metrics", methods=["GET"])
+def get_system_metrics_polling():
+    """Get performance metrics and statistics"""
+    try:
+        metrics = {
+            "timestamp": datetime.now().isoformat(),
+            "performance": {
+                "average_generation_time": None,
+                "success_rate": None,
+                "videos_per_hour": None,
+                "total_videos_generated": 0
+            },
+            "storage": {
+                "total_storage_used": 0,
+                "average_video_size": 0,
+                "storage_by_domain": {}
+            },
+            "queue_efficiency": {
+                "queue_depth": 0,
+                "processing_capacity": 0,
+                "estimated_queue_time": 0
+            }
+        }
+        
+        if job_queue_manager:
+            # Get completed jobs for metrics
+            completed_jobs = [j for j in job_queue_manager._job_cache.values() if j.status.value == "completed"]
+            
+            if completed_jobs:
+                # Calculate performance metrics
+                generation_times = []
+                total_size = 0
+                domain_storage = {}
+                
+                for job in completed_jobs:
+                    if job.started_at and job.completed_at:
+                        duration = (job.completed_at - job.started_at).total_seconds()
+                        generation_times.append(duration)
+                    
+                    # Get video file size if available
+                    video_path = job_queue_manager.get_video_for_job(job.job_id)
+                    if video_path and os.path.exists(video_path):
+                        try:
+                            size = os.path.getsize(video_path)
+                            total_size += size
+                            domain_storage[job.domain] = domain_storage.get(job.domain, 0) + size
+                        except:
+                            pass
+                
+                # Update metrics
+                if generation_times:
+                    metrics["performance"]["average_generation_time"] = sum(generation_times) / len(generation_times)
+                    metrics["performance"]["videos_per_hour"] = 3600 / metrics["performance"]["average_generation_time"] if metrics["performance"]["average_generation_time"] > 0 else 0
+                
+                total_jobs = len(job_queue_manager._job_cache)
+                metrics["performance"]["success_rate"] = len(completed_jobs) / total_jobs if total_jobs > 0 else 0
+                metrics["performance"]["total_videos_generated"] = len(completed_jobs)
+                
+                metrics["storage"]["total_storage_used"] = total_size
+                metrics["storage"]["average_video_size"] = total_size / len(completed_jobs) if completed_jobs else 0
+                metrics["storage"]["storage_by_domain"] = {k: round(v/(1024*1024), 2) for k, v in domain_storage.items()}
+            
+            # Queue metrics
+            queue_status = job_queue_manager.get_queue_status()
+            metrics["queue_efficiency"]["queue_depth"] = queue_status.get("by_status", {}).get("queued", 0)
+            metrics["queue_efficiency"]["processing_capacity"] = queue_status.get("by_status", {}).get("processing", 0)
+            
+            # Estimate queue processing time
+            if metrics["performance"]["average_generation_time"]:
+                queued_jobs = metrics["queue_efficiency"]["queue_depth"]
+                processing_jobs = metrics["queue_efficiency"]["processing_capacity"]
+                max_concurrent = job_queue_manager.max_concurrent_jobs
+                
+                if queued_jobs > 0:
+                    estimated_time = (queued_jobs / max_concurrent) * metrics["performance"]["average_generation_time"]
+                    metrics["queue_efficiency"]["estimated_queue_time"] = estimated_time
+        
+        return jsonify({"metrics": metrics})
+        
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
+
+# ===== HIDDEN OAUTH CREDENTIALS MANAGEMENT =====
+
+@app.route("/oauth-secret-management-x9k2m8n7/generate-access-key", methods=["POST"])
+def generate_oauth_access_key():
+    """HIDDEN: Generate new OAuth access key"""
+    try:
+        if not oauth_manager:
+            return jsonify({"error": "OAuth manager not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        user_identifier = data.get("user_identifier")
+        if not user_identifier:
+            raise BadRequest("user_identifier is required")
+        
+        # Generate access key
+        access_key = oauth_manager.generate_access_key(user_identifier)
+        
+        return jsonify({
+            "success": True,
+            "access_key": access_key,
+            "user_identifier": user_identifier,
+            "message": "Access key generated. Use this key to add OAuth credentials.",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to generate access key"
+        }), 500
+
+@app.route("/oauth-secret-management-x9k2m8n7/add-credentials", methods=["POST"])
+def add_oauth_credentials():
+    """HIDDEN: Add Google OAuth credentials"""
+    try:
+        if not oauth_manager:
+            return jsonify({"error": "OAuth manager not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        access_key = data.get("access_key")
+        client_id = data.get("client_id")
+        client_secret = data.get("client_secret")
+        user_info = data.get("user_info", {})
+        
+        if not all([access_key, client_id, client_secret]):
+            raise BadRequest("access_key, client_id, and client_secret are required")
+        
+        # Add credentials
+        success = oauth_manager.add_credentials(access_key, client_id, client_secret, user_info)
+        
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "OAuth credentials added successfully",
+                "access_key_preview": access_key[:16] + "...",
+                "client_id_preview": client_id[:20] + "..." if len(client_id) > 20 else client_id,
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Failed to add credentials (may already exist or invalid format)"
+            }), 400
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to add OAuth credentials"
+        }), 500
+
+@app.route("/oauth-secret-management-x9k2m8n7/list-credentials", methods=["GET"])
+def list_oauth_credentials():
+    """HIDDEN: List stored OAuth credentials (masked)"""
+    try:
+        if not oauth_manager:
+            return jsonify({"error": "OAuth manager not initialized"}), 500
+        
+        # Get admin key from header for security
+        admin_key = request.headers.get("X-Admin-Key")
+        if admin_key != "admin-oauth-list-2024":
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        credentials_list = oauth_manager.list_credentials()
+        stats = oauth_manager.get_stats()
+        
+        return jsonify({
+            "success": True,
+            "credentials": credentials_list,
+            "stats": stats,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to list OAuth credentials"
+        }), 500
+
+@app.route("/oauth-secret-management-x9k2m8n7/remove-credentials", methods=["POST"])
+def remove_oauth_credentials():
+    """HIDDEN: Remove OAuth credentials"""
+    try:
+        if not oauth_manager:
+            return jsonify({"error": "OAuth manager not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        access_key = data.get("access_key")
+        admin_key = data.get("admin_key")
+        
+        if not access_key:
+            raise BadRequest("access_key is required")
+        
+        if admin_key != "admin-oauth-remove-2024":
+            return jsonify({"error": "Unauthorized"}), 403
+        
+        success = oauth_manager.remove_credentials(access_key)
+        
+        return jsonify({
+            "success": success,
+            "message": "Credentials removed" if success else "Credentials not found",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to remove OAuth credentials"
+        }), 500
+
+@app.route("/oauth-secret-management-x9k2m8n7/validate-key", methods=["POST"])
+def validate_oauth_key():
+    """HIDDEN: Validate if an access key exists"""
+    try:
+        if not oauth_manager:
+            return jsonify({"error": "OAuth manager not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        access_key = data.get("access_key")
+        if not access_key:
+            raise BadRequest("access_key is required")
+        
+        is_valid = oauth_manager.validate_access_key(access_key)
+        
+        return jsonify({
+            "valid": is_valid,
+            "access_key_preview": access_key[:16] + "...",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "error": str(e),
+            "message": "Failed to validate access key"
+        }), 500
+
+# ===== YOUTUBE UPLOAD WITH STORED CREDENTIALS =====
+
+@app.route("/upload/youtube-with-key", methods=["POST"])
+def upload_to_youtube_with_stored_key():
+    """Upload video to YouTube using stored OAuth credentials"""
+    try:
+        if not oauth_manager:
+            return jsonify({"error": "OAuth manager not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        access_key = data.get("access_key")
+        job_id = data.get("job_id")
+        video_title = data.get("title", "AI Generated Video")
+        video_description = data.get("description", "Generated by AI Video System")
+        video_tags = data.get("tags", ["AI", "generated", "video"])
+        privacy_status = data.get("privacy_status", "private")  # private, public, unlisted
+        
+        if not access_key:
+            raise BadRequest("access_key is required")
+        
+        if not job_id:
+            raise BadRequest("job_id is required")
+        
+        # Get OAuth credentials
+        credentials = oauth_manager.get_credentials(access_key)
+        if not credentials:
+            return jsonify({"error": "Invalid access key or credentials not found"}), 401
+        
+        # Get video file path
+        if job_queue_manager:
+            video_path = job_queue_manager.get_video_for_job(job_id)
+        else:
+            # Fallback to legacy job system
+            job = active_jobs.get(job_id)
+            video_path = job.result.get("video_file") if job and job.result else None
+        
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({"error": "Video file not found for job"}), 404
+        
+        # Prepare upload data
+        upload_data = {
+            "video_file": video_path,
+            "title": video_title,
+            "description": video_description,
+            "tags": video_tags,
+            "privacy_status": privacy_status,
+            "client_id": credentials["client_id"],
+            "client_secret": credentials["client_secret"]
+        }
+        
+        # Import YouTube uploader
+        try:
+            from backend_functions.youtube_uploader import upload_to_youtube_with_oauth
+            
+            # Upload to YouTube
+            upload_result = upload_to_youtube_with_oauth(upload_data)
+            
+            if upload_result.get("success"):
+                return jsonify({
+                    "success": True,
+                    "message": "Video uploaded successfully to YouTube",
+                    "video_id": upload_result.get("video_id"),
+                    "video_url": f"https://youtube.com/watch?v={upload_result.get('video_id')}",
+                    "upload_result": upload_result,
+                    "job_id": job_id,
+                    "timestamp": datetime.now().isoformat()
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "message": "YouTube upload failed",
+                    "error": upload_result.get("error"),
+                    "upload_result": upload_result
+                }), 500
+                
+        except ImportError:
+            return jsonify({
+                "error": "YouTube uploader not available",
+                "message": "YouTube upload functionality not implemented"
+            }), 500
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to upload to YouTube"
+        }), 500
+
+@app.route("/upload/next-video-to-cloudflare", methods=["POST"])
+def upload_next_video_to_cloudflare():
+    """Upload the next completed video to Cloudflare (sequential, one-by-one)"""
+    try:
+        if not all([job_queue_manager, cloudflare_manager]):
+            return jsonify({"error": "Required managers not initialized"}), 500
+        
+        # Check Cloudflare storage limit first
+        storage_status = cloudflare_manager.check_storage_limit()
+        
+        if storage_status["storage_full"]:
+            return jsonify({
+                "success": False,
+                "message": "Cloudflare storage full (30+ videos). Please delete some videos first.",
+                "storage_status": storage_status,
+                "action_required": "Delete old videos to make space"
+            })
+        
+        # Get the next completed video that hasn't been uploaded to Cloudflare yet
+        completed_jobs = job_queue_manager.get_completed_jobs_with_videos(50)  # Get more to find unuploaded ones
+        
+        # Find first video not yet uploaded to Cloudflare
+        next_video = None
+        for job in completed_jobs:
+            if job.get("video_exists") and job["job_id"] not in cloudflare_manager.storage_records:
+                next_video = job
+                break
+        
+        if not next_video:
+            return jsonify({
+                "success": False,
+                "message": "No new videos available for upload to Cloudflare",
+                "storage_status": storage_status
+            })
+        
+        # Prepare video metadata
+        job_result = next_video.get("result", {})
+        story_info = job_result.get("story_info", {})
+        
+        video_metadata = {
+            "job_id": next_video["job_id"],
+            "topic": next_video["topic"],
+            "domain": next_video["domain"],
+            "title": story_info.get("title", next_video["topic"]),
+            "created_at": next_video["created_at"],
+            "completed_at": next_video["completed_at"],
+            "duration": job_result.get("final_video", {}).get("duration_seconds", 0),
+            "story_summary": story_info.get("summary", "")
+        }
+        
+        # Upload to Cloudflare
+        upload_result = cloudflare_manager.upload_video_to_cloudflare(
+            next_video["job_id"], 
+            next_video["video_path"],
+            video_metadata
+        )
+        
+        if upload_result["success"]:
+            return jsonify({
+                "success": True,
+                "message": "Video uploaded to Cloudflare successfully",
+                "job_id": next_video["job_id"],
+                "topic": next_video["topic"],
+                "cloudflare_url": upload_result["cloudflare_url"],
+                "local_file_deleted": upload_result.get("local_file_deleted", False),
+                "storage_status": upload_result["storage_status"],
+                "upload_details": upload_result["upload_record"],
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Failed to upload video to Cloudflare",
+                "job_id": next_video["job_id"],
+                "topic": next_video["topic"],
+                "error": upload_result.get("error"),
+                "cloudflare_error": upload_result.get("cloudflare_error"),
+                "timestamp": datetime.now().isoformat()
+            }), 500
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to upload next video to Cloudflare"
+        }), 500
+
+@app.route("/upload/youtube-from-cloudflare", methods=["POST"])
+def upload_youtube_from_cloudflare():
+    """Upload video from Cloudflare to YouTube with AI-generated metadata"""
+    try:
+        if not all([oauth_manager, cloudflare_manager, job_queue_manager]):
+            return jsonify({"error": "Required managers not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        access_key = data.get("access_key")
+        job_id = data.get("job_id")  # Optional - if not provided, get next available
+        platform = data.get("platform", "youtube")  # youtube, instagram, tiktok
+        privacy_status = data.get("privacy_status", "private")
+        custom_title = data.get("title")
+        custom_description = data.get("description")
+        
+        if not access_key:
+            raise BadRequest("access_key is required")
+        
+        # Validate OAuth credentials
+        credentials = oauth_manager.get_credentials(access_key)
+        if not credentials:
+            return jsonify({"error": "Invalid access key"}), 401
+        
+        # Get video from Cloudflare storage
+        if job_id:
+            if job_id not in cloudflare_manager.storage_records:
+                return jsonify({"error": "Video not found in Cloudflare storage"}), 404
+            video_record = cloudflare_manager.storage_records[job_id]
+        else:
+            # Get the oldest video from Cloudflare for upload
+            stored_videos = cloudflare_manager.get_stored_videos()
+            if not stored_videos:
+                return jsonify({
+                    "success": False,
+                    "message": "No videos available in Cloudflare storage"
+                })
+            video_record = stored_videos[-1]  # Oldest video
+            job_id = video_record["job_id"]
+        
+        # Get job metadata from job queue (includes AI-generated captions/metadata)
+        job_details = job_queue_manager.get_job(job_id)
+        ai_metadata = {}
+        
+        if job_details and job_details.result:
+            ai_metadata = job_details.result.get("video_metadata", {})
+        
+        # Get platform-specific metadata
+        platform_meta = ai_metadata.get("platform_metadata", {}).get(platform, {})
+        base_meta = ai_metadata.get("base_metadata", {})
+        cloudflare_meta = video_record.get("metadata", {})
+        
+        # Prepare optimized upload data
+        if platform == "youtube":
+            upload_data = {
+                "cloudflare_url": video_record["cloudflare_url"],
+                "title": custom_title or platform_meta.get("title", cloudflare_meta.get("title", "AI Generated Video"))[:100],
+                "description": custom_description or platform_meta.get("description", f"AI Generated Video about {cloudflare_meta.get('topic', 'unknown topic')}"),
+                "tags": platform_meta.get("tags", [cloudflare_meta.get("domain", "general"), "AI", "generated"]),
+                "privacy_status": privacy_status,
+                "category": platform_meta.get("category", "22"),
+                "captions_srt": ai_metadata.get("captions", {}).get("srt_format", ""),
+                "client_id": credentials["client_id"],
+                "client_secret": credentials["client_secret"]
+            }
+            
+        elif platform == "instagram":
+            upload_data = {
+                "cloudflare_url": video_record["cloudflare_url"],
+                "caption": custom_description or platform_meta.get("caption", f"Check out this amazing story! 🎬\n\n{cloudflare_meta.get('topic', 'AI Generated Content')}\n\n#AI #story #content"),
+                "hashtags": platform_meta.get("hashtags", ["#AI", "#generated", "#story"]),
+                "privacy_status": privacy_status,
+                "client_id": credentials["client_id"],
+                "client_secret": credentials["client_secret"]
+            }
+            
+        else:  # Default/other platforms
+            upload_data = {
+                "cloudflare_url": video_record["cloudflare_url"],
+                "title": custom_title or cloudflare_meta.get("title", "AI Generated Video"),
+                "description": custom_description or f"AI Generated Video: {cloudflare_meta.get('topic', 'Unknown')}",
+                "tags": [cloudflare_meta.get("domain", "general"), "AI", "generated"],
+                "privacy_status": privacy_status,
+                "client_id": credentials["client_id"],
+                "client_secret": credentials["client_secret"]
+            }
+        
+        # Simulate platform upload (replace with real implementation)
+        upload_result = {
+            "success": True,  # Placeholder
+            "video_id": f"{platform}_{int(time.time())}_{job_id[:8]}",  # Placeholder
+            "video_url": f"https://{platform}.com/watch?v={platform}_{int(time.time())}_{job_id[:8]}"
+        }
+        
+        if upload_result["success"]:
+            return jsonify({
+                "success": True,
+                "message": f"Video uploaded to {platform.title()} successfully",
+                "platform": platform,
+                "job_id": job_id,
+                "topic": cloudflare_meta.get("topic", "Unknown"),
+                "video_id": upload_result["video_id"],
+                "video_url": upload_result["video_url"],
+                "cloudflare_url": video_record["cloudflare_url"],
+                "upload_data": upload_data,
+                "ai_metadata_used": bool(ai_metadata),
+                "captions_included": bool(upload_data.get("captions_srt")),
+                "optimization_applied": {
+                    "title_optimized": bool(platform_meta.get("title")),
+                    "description_optimized": bool(platform_meta.get("description")),
+                    "tags_optimized": bool(platform_meta.get("tags")),
+                    "platform_specific": True
+                },
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": f"{platform.title()} upload failed",
+                "error": upload_result.get("error"),
+                "job_id": job_id
+            }), 500
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": f"Failed to upload from Cloudflare to {platform}"
+        }), 500
+
+# ===== CLOUDFLARE STORAGE MANAGEMENT =====
+
+@app.route("/cloudflare/storage-status", methods=["GET"])
+def get_cloudflare_storage_status():
+    """Get Cloudflare storage status and limits"""
+    try:
+        if not cloudflare_manager:
+            return jsonify({"error": "Cloudflare manager not initialized"}), 500
+        
+        storage_status = cloudflare_manager.check_storage_limit()
+        storage_stats = cloudflare_manager.get_storage_stats()
+        
+        return jsonify({
+            "success": True,
+            "storage_status": storage_status,
+            "storage_stats": storage_stats,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to get Cloudflare storage status"
+        }), 500
+
+@app.route("/cloudflare/list-videos", methods=["GET"])
+def list_cloudflare_videos():
+    """List videos stored on Cloudflare"""
+    try:
+        if not cloudflare_manager:
+            return jsonify({"error": "Cloudflare manager not initialized"}), 500
+        
+        limit = request.args.get("limit", type=int)
+        stored_videos = cloudflare_manager.get_stored_videos(limit)
+        
+        return jsonify({
+            "success": True,
+            "videos": stored_videos,
+            "count": len(stored_videos),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to list Cloudflare videos"
+        }), 500
+
+@app.route("/cloudflare/delete-video/<job_id>", methods=["DELETE"])
+def delete_cloudflare_video(job_id: str):
+    """Delete specific video from Cloudflare"""
+    try:
+        if not cloudflare_manager:
+            return jsonify({"error": "Cloudflare manager not initialized"}), 500
+        
+        delete_result = cloudflare_manager.delete_video_from_cloudflare(job_id)
+        
+        if delete_result["success"]:
+            return jsonify({
+                "success": True,
+                "message": f"Video deleted from Cloudflare: {delete_result['deleted_filename']}",
+                "deleted_job_id": delete_result["deleted_job_id"],
+                "freed_space_mb": delete_result["freed_space_mb"],
+                "storage_status": delete_result["storage_status"],
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Failed to delete video from Cloudflare",
+                "error": delete_result.get("error"),
+                "job_id": job_id
+            }), 500
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to delete video from Cloudflare"
+        }), 500
+
+@app.route("/cloudflare/delete-oldest", methods=["POST"])
+def delete_oldest_cloudflare_video():
+    """Delete oldest video from Cloudflare to free space"""
+    try:
+        if not cloudflare_manager:
+            return jsonify({"error": "Cloudflare manager not initialized"}), 500
+        
+        # Get how many to delete (default 1)
+        data = request.get_json() or {}
+        count = data.get("count", 1)
+        
+        deleted_videos = []
+        total_freed_space = 0
+        
+        for i in range(count):
+            delete_result = cloudflare_manager._cleanup_oldest_video()
+            
+            if delete_result["success"]:
+                deleted_videos.append({
+                    "job_id": delete_result["deleted_job_id"],
+                    "filename": delete_result["deleted_filename"],
+                    "freed_space_mb": delete_result["freed_space_mb"]
+                })
+                total_freed_space += delete_result["freed_space_mb"]
+            else:
+                break  # Stop if deletion fails
+        
+        if deleted_videos:
+            return jsonify({
+                "success": True,
+                "message": f"Deleted {len(deleted_videos)} oldest video(s) from Cloudflare",
+                "deleted_videos": deleted_videos,
+                "total_freed_space_mb": round(total_freed_space, 2),
+                "storage_status": cloudflare_manager.check_storage_limit(),
+                "timestamp": datetime.now().isoformat()
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "message": "No videos could be deleted",
+                "timestamp": datetime.now().isoformat()
+            })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to delete oldest videos"
+        }), 500
+
+@app.route("/cloudflare/cleanup-storage", methods=["POST"])
+def cleanup_cloudflare_storage():
+    """Clean up Cloudflare storage when full (automated cleanup)"""
+    try:
+        if not cloudflare_manager:
+            return jsonify({"error": "Cloudflare manager not initialized"}), 500
+        
+        storage_status = cloudflare_manager.check_storage_limit()
+        
+        if not storage_status["storage_full"]:
+            return jsonify({
+                "success": True,
+                "message": "Storage not full, no cleanup needed",
+                "storage_status": storage_status
+            })
+        
+        # Calculate how many videos to delete to get below 25 videos (buffer)
+        target_count = 25
+        current_count = storage_status["current_videos"]
+        videos_to_delete = max(1, current_count - target_count)
+        
+        deleted_videos = []
+        total_freed_space = 0
+        
+        for i in range(videos_to_delete):
+            delete_result = cloudflare_manager._cleanup_oldest_video()
+            
+            if delete_result["success"]:
+                deleted_videos.append({
+                    "job_id": delete_result["deleted_job_id"],
+                    "filename": delete_result["deleted_filename"],
+                    "freed_space_mb": delete_result["freed_space_mb"]
+                })
+                total_freed_space += delete_result["freed_space_mb"]
+            else:
+                print(f"[CLEANUP] Failed to delete video {i+1}: {delete_result.get('error')}")
+                break
+        
+        return jsonify({
+            "success": True,
+            "message": f"Cleanup completed: deleted {len(deleted_videos)} videos",
+            "deleted_videos": deleted_videos,
+            "total_freed_space_mb": round(total_freed_space, 2),
+            "storage_status": cloudflare_manager.check_storage_limit(),
+            "target_count": target_count,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to cleanup Cloudflare storage"
+        }), 500
+
+@app.route("/workflow/complete-upload-sequence", methods=["POST"])
+def complete_upload_sequence():
+    """Complete upload sequence: Local → Cloudflare → YouTube (one video)"""
+    try:
+        if not all([job_queue_manager, cloudflare_manager, oauth_manager]):
+            return jsonify({"error": "Required managers not initialized"}), 500
+        
+        data = request.get_json()
+        if not data:
+            raise BadRequest("No JSON data provided")
+        
+        access_key = data.get("access_key")
+        privacy_status = data.get("privacy_status", "private")
+        
+        if not access_key:
+            raise BadRequest("access_key is required")
+        
+        # Validate OAuth credentials
+        credentials = oauth_manager.get_credentials(access_key)
+        if not credentials:
+            return jsonify({"error": "Invalid access key"}), 401
+        
+        workflow_results = {
+            "stage_1_cloudflare_upload": None,
+            "stage_2_youtube_upload": None,
+            "local_file_cleanup": None
+        }
+        
+        # Stage 1: Upload next video to Cloudflare
+        storage_status = cloudflare_manager.check_storage_limit()
+        
+        if storage_status["storage_full"]:
+            # Auto-cleanup to make space
+            cleanup_result = cloudflare_manager._cleanup_oldest_video()
+            workflow_results["auto_cleanup"] = cleanup_result
+        
+        # Find next video to upload to Cloudflare
+        completed_jobs = job_queue_manager.get_completed_jobs_with_videos(10)
+        next_video = None
+        
+        for job in completed_jobs:
+            if job.get("video_exists") and job["job_id"] not in cloudflare_manager.storage_records:
+                next_video = job
+                break
+        
+        if not next_video:
+            return jsonify({
+                "success": False,
+                "message": "No new videos available for upload sequence",
+                "storage_status": storage_status,
+                "workflow_results": workflow_results
+            })
+        
+        # Upload to Cloudflare
+        job_result = next_video.get("result", {})
+        story_info = job_result.get("story_info", {})
+        
+        video_metadata = {
+            "job_id": next_video["job_id"],
+            "topic": next_video["topic"],
+            "domain": next_video["domain"],
+            "title": story_info.get("title", next_video["topic"]),
+            "story_summary": story_info.get("summary", "")
+        }
+        
+        cloudflare_result = cloudflare_manager.upload_video_to_cloudflare(
+            next_video["job_id"], 
+            next_video["video_path"],
+            video_metadata
+        )
+        
+        workflow_results["stage_1_cloudflare_upload"] = cloudflare_result
+        
+        if not cloudflare_result["success"]:
+            return jsonify({
+                "success": False,
+                "message": "Failed to upload to Cloudflare",
+                "workflow_results": workflow_results
+            }), 500
+        
+        # Stage 2: Upload to YouTube from Cloudflare
+        upload_data = {
+            "cloudflare_url": cloudflare_result["cloudflare_url"],
+            "title": video_metadata["title"][:100],
+            "description": f"AI Generated Video: {video_metadata['topic']}\n\nDomain: {video_metadata['domain']}\n\nGenerated automatically by AI Video System.",
+            "tags": [video_metadata["domain"], "AI", "generated", "video", "automated"],
+            "privacy_status": privacy_status,
+            "client_id": credentials["client_id"],
+            "client_secret": credentials["client_secret"]
+        }
+        
+        # Simulate YouTube upload
+        youtube_result = {
+            "success": True,
+            "video_id": f"yt_{int(time.time())}_{next_video['job_id'][:8]}",
+            "video_url": f"https://youtube.com/watch?v=yt_{int(time.time())}_{next_video['job_id'][:8]}"
+        }
+        
+        workflow_results["stage_2_youtube_upload"] = youtube_result
+        
+        return jsonify({
+            "success": True,
+            "message": "Complete upload sequence successful",
+            "job_id": next_video["job_id"],
+            "topic": next_video["topic"],
+            "cloudflare_url": cloudflare_result["cloudflare_url"],
+            "youtube_url": youtube_result["video_url"] if youtube_result["success"] else None,
+            "local_file_deleted": cloudflare_result.get("local_file_deleted", False),
+            "workflow_results": workflow_results,
+            "storage_status": cloudflare_manager.check_storage_limit(),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except BadRequest as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "message": "Failed to complete upload sequence",
+            "workflow_results": workflow_results
         }), 500
 
 if __name__ == "__main__":

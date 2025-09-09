@@ -18,6 +18,7 @@ try:
     from .segment_video_creator import create_segment_videos
     from .video_segment_stitcher import stitch_segment_videos
     from .cleanup_utils import auto_cleanup_after_upload, scheduled_cleanup
+    from .caption_metadata_generator import get_caption_generator
 except ImportError:
     # Fallback to absolute imports
     import sys
@@ -29,6 +30,7 @@ except ImportError:
     from segment_video_creator import create_segment_videos
     from video_segment_stitcher import stitch_segment_videos
     from cleanup_utils import auto_cleanup_after_upload, scheduled_cleanup
+    from caption_metadata_generator import get_caption_generator
 
 def generate_story_video(topic: str, script_length: str = "medium", voice: str = "alloy",
                         width: int = 1024, height: int = 576, fps: int = 24,
@@ -231,6 +233,52 @@ def generate_story_video(topic: str, script_length: str = "medium", voice: str =
         
         print(f"[STORY VIDEO] Final Video: {final_result.get('filename')} ({final_result.get('duration_seconds', 0):.1f}s)")
         
+        # Stage 6: Generate Captions and Metadata
+        print(f"[STORY VIDEO] Stage 6: Generating captions and platform metadata...")
+        stage_start = time.time()
+        
+        try:
+            caption_generator = get_caption_generator()
+            
+            # Prepare story info for metadata generation
+            story_metadata_input = {
+                "title": script_result.get("story_title", topic),
+                "summary": script_result.get("story_summary", ""),
+                "characters": script_result.get("characters", []),
+                "segments": script_result.get("segments", []),
+                "domain": topic.split()[0].lower() if " " in topic else "general"  # Simple domain detection
+            }
+            
+            # Generate comprehensive metadata
+            video_metadata = caption_generator.generate_video_metadata(
+                story_metadata_input, 
+                story_metadata_input["domain"],
+                platforms=["youtube", "instagram", "tiktok"]
+            )
+            
+            # Save metadata to output directory
+            metadata_file = caption_generator.save_metadata_to_file(video_metadata, output_dir)
+            
+            results["stages"]["metadata_generation"] = {
+                "success": True,
+                "duration": time.time() - stage_start,
+                "metadata_file": metadata_file,
+                "platforms_generated": list(video_metadata.get("platform_metadata", {}).keys()),
+                "captions_available": bool(video_metadata.get("captions", {}).get("srt_format")),
+                "seo_keywords": len(video_metadata.get("seo_data", {}).get("primary_keywords", []))
+            }
+            
+            print(f"[STORY VIDEO] Metadata: Generated for {len(video_metadata.get('platform_metadata', {}))} platforms")
+            
+        except Exception as e:
+            print(f"[STORY VIDEO] Warning: Metadata generation failed: {e}")
+            video_metadata = {}
+            results["stages"]["metadata_generation"] = {
+                "success": False,
+                "duration": time.time() - stage_start,
+                "error": str(e)
+            }
+        
         # Complete results
         total_duration = time.time() - start_time
         
@@ -253,7 +301,8 @@ def generate_story_video(topic: str, script_length: str = "medium", voice: str =
                 "characters": script_result.get("characters", []),
                 "total_segments": script_result.get("total_segments", 0),
                 "has_dialogs": script_result.get("has_dialogs", False)
-            }
+            },
+            "video_metadata": video_metadata
         })
         
         # Save complete results
